@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Bill Details - HouseMate</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-tint": "#0053db",
+                      "on-primary-container": "#eeefff",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "on-secondary-container": "#54647a",
+                      "background": "#faf8ff",
+                      "on-secondary": "#ffffff",
+                      "on-surface": "#191b23",
+                      "on-primary": "#ffffff",
+                      "surface-variant": "#e1e2ed",
+                      "surface-bright": "#faf8ff",
+                      "on-error-container": "#93000a",
+                      "inverse-primary": "#b4c5ff",
+                      "on-primary-fixed": "#00174b",
+                      "outline": "#737686",
+                      "tertiary": "#943700",
+                      "surface-dim": "#d9d9e5",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-container": "#ffede6",
+                      "secondary": "#505f76",
+                      "secondary-fixed": "#d3e4fe",
+                      "inverse-surface": "#2e3039",
+                      "on-error": "#ffffff",
+                      "outline-variant": "#c3c6d7",
+                      "tertiary-fixed-dim": "#ffb596",
+                      "surface": "#faf8ff",
+                      "on-tertiary": "#ffffff",
+                      "surface-container-high": "#e7e7f3",
+                      "tertiary-container": "#bc4800",
+                      "secondary-container": "#d0e1fb",
+                      "on-background": "#191b23",
+                      "on-surface-variant": "#434655",
+                      "surface-container": "#ededf9",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-highest": "#e1e2ed",
+                      "on-tertiary-fixed-variant": "#7d2d00",
+                      "inverse-on-surface": "#f0f0fb",
+                      "primary": "#004ac6",
+                      "surface-container-low": "#f3f3fe",
+                      "on-tertiary-fixed": "#360f00",
+                      "primary-container": "#2563eb",
+                      "error": "#ba1a1a",
+                      "on-secondary-fixed": "#0b1c30",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "tertiary-fixed": "#ffdbcd",
+                      "primary-fixed": "#dbe1ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "xs": "8px",
+                      "xxl": "48px",
+                      "base": "4px",
+                      "lg": "24px",
+                      "xl": "32px",
+                      "container-max": "1200px",
+                      "gutter": "16px",
+                      "margin-mobile": "16px",
+                      "sm": "12px",
+                      "md": "16px",
+                      "margin-desktop": "32px"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "display-financial": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "36px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-financial": [
+                              "40px",
+                              {
+                                      "lineHeight": "48px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+            },
+          }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col md:flex-row">
+<!-- TopNavBar (Mobile) -->
+<nav class="md:hidden flex justify-between items-center w-full px-margin-mobile py-4 shadow-sm bg-surface dark:bg-on-surface docked full-width top-0 z-40 sticky">
+<div class="flex items-center gap-sm">
+<button class="text-secondary dark:text-secondary-fixed-dim hover:text-primary-container transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">HouseMate</span>
+</div>
+<div class="flex gap-sm">
+<button class="text-secondary dark:text-secondary-fixed-dim hover:text-primary-container transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-secondary dark:text-secondary-fixed-dim hover:text-primary-container transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+</div>
+</nav>
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex flex-col h-full py-xl px-md bg-surface dark:bg-on-surface shadow-sm fixed left-0 top-0 w-[280px] z-40">
+<div class="mb-xxl">
+<h1 class="font-headline-lg text-headline-lg font-black text-primary dark:text-primary-fixed">HouseMate</h1>
+<p class="font-label-sm text-label-sm text-secondary mt-base">Shared Living Harmony</p>
+</div>
+<button class="w-full bg-primary text-on-primary py-sm rounded-lg font-label-md text-label-md mb-xl hover:bg-primary-container transition-colors shadow-sm">
+            Add Expense
+        </button>
+<div class="flex flex-col gap-xs flex-grow">
+<a class="flex items-center gap-sm px-md py-sm rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-all cursor-pointer transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-all cursor-pointer transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="home_work">home_work</span>
+<span class="font-label-md text-label-md">House</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-lg bg-primary/10 dark:bg-primary-fixed/10 text-primary dark:text-primary-fixed border-l-4 border-primary cursor-pointer transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-label-md text-label-md">Expenses</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-all cursor-pointer transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-label-md text-label-md">Payments</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-all cursor-pointer transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</div>
+<div class="mt-auto flex flex-col gap-xs border-t border-surface-variant pt-md">
+<a class="flex items-center gap-sm px-md py-sm rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-all cursor-pointer transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-md text-label-md">Profile</span>
+</a>
+<a class="flex items-center gap-sm px-md py-sm rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-all cursor-pointer transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</a>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-1 w-full md:ml-[280px] pb-[80px] md:pb-0 px-margin-mobile md:px-margin-desktop py-lg">
+<div class="max-w-[800px] mx-auto">
+<!-- Header Section -->
+<div class="flex items-center justify-between mb-lg">
+<div class="flex items-center gap-sm">
+<span class="text-[32px]">📶</span>
+<h2 class="font-headline-lg text-headline-lg md:font-headline-lg md:text-headline-lg text-on-surface">Wi-Fi</h2>
+</div>
+<button class="bg-surface-container text-on-surface-variant px-md py-xs rounded-full font-label-sm text-label-sm hover:bg-surface-variant transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+                    Edit
+                </button>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg mb-lg">
+<!-- Bill Summary Card -->
+<div class="bg-surface rounded-2xl p-lg shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_1px_2px_rgba(0,0,0,0.03)] border border-surface-container-high">
+<p class="font-label-sm text-label-sm text-secondary uppercase tracking-wider mb-sm">Bill Summary</p>
+<div class="font-display-financial text-display-financial text-primary mb-md">$45.00</div>
+<div class="space-y-sm">
+<div class="flex justify-between items-center py-xs border-b border-surface-container-high">
+<span class="font-body-md text-body-md text-secondary">Frequency</span>
+<span class="font-label-md text-label-md text-on-surface">Every 3 months</span>
+</div>
+<div class="flex justify-between items-center py-xs border-b border-surface-container-high">
+<span class="font-body-md text-body-md text-secondary">Next Payment</span>
+<span class="font-label-md text-label-md text-on-surface">Sep 10</span>
+</div>
+<div class="flex justify-between items-center py-xs">
+<span class="font-body-md text-body-md text-secondary">Provider</span>
+<span class="font-label-md text-label-md text-on-surface">Xfinity</span>
+</div>
+</div>
+</div>
+<!-- Your Share & Savings -->
+<div class="flex flex-col gap-lg">
+<!-- Your Share Card -->
+<div class="bg-primary-container text-on-primary-container rounded-2xl p-lg shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_1px_2px_rgba(0,0,0,0.03)] flex-1 flex flex-col justify-center">
+<p class="font-label-sm text-label-sm opacity-80 uppercase tracking-wider mb-sm">Your Share</p>
+<div class="font-display-financial text-display-financial">$9.00</div>
+<p class="font-body-md text-body-md opacity-90 mt-xs">Due by Sep 8</p>
+</div>
+<!-- Wi-Fi Saving Card -->
+<div class="bg-surface rounded-2xl p-lg shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_1px_2px_rgba(0,0,0,0.03)] border border-surface-container-high">
+<div class="flex justify-between items-center mb-sm">
+<h3 class="font-headline-md text-headline-md text-on-surface">Wi-Fi Saving</h3>
+<span class="bg-secondary-container text-on-secondary-container px-sm py-[2px] rounded-full font-label-sm text-label-sm">Save each month: $3</span>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm mb-xs">
+<span class="text-primary font-bold">Saved $6</span>
+<span class="text-secondary">Remaining $3</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2 mb-2 overflow-hidden">
+<div class="bg-primary h-2 rounded-full" style="width: 66.66%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Payment Status Section -->
+<div class="bg-surface rounded-2xl p-lg shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_1px_2px_rgba(0,0,0,0.03)] border border-surface-container-high">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-md">Payment Status</h3>
+<div class="space-y-sm">
+<!-- Devid -->
+<div class="flex items-center justify-between p-sm hover:bg-surface-container-low rounded-xl transition-colors">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-label-md text-label-md">D</div>
+<span class="font-body-md text-body-md text-on-surface font-medium">Devid</span>
+</div>
+<div class="flex items-center gap-xs text-[#059669] bg-[#d1fae5] px-sm py-xs rounded-md">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">Paid</span>
+</div>
+</div>
+<!-- Dara -->
+<div class="flex items-center justify-between p-sm hover:bg-surface-container-low rounded-xl transition-colors">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-label-md text-label-md">Da</div>
+<span class="font-body-md text-body-md text-on-surface font-medium">Dara</span>
+</div>
+<div class="flex items-center gap-xs text-[#059669] bg-[#d1fae5] px-sm py-xs rounded-md">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">Paid</span>
+</div>
+</div>
+<!-- Sok -->
+<div class="flex items-center justify-between p-sm hover:bg-surface-container-low rounded-xl transition-colors">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-label-md text-label-md">S</div>
+<span class="font-body-md text-body-md text-on-surface font-medium">Sok</span>
+</div>
+<div class="flex items-center gap-xs text-[#b45309] bg-[#fef3c7] px-sm py-xs rounded-md">
+<span class="material-symbols-outlined text-[16px]">hourglass_empty</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">Waiting</span>
+</div>
+</div>
+<!-- Vannak -->
+<div class="flex items-center justify-between p-sm hover:bg-surface-container-low rounded-xl transition-colors">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-label-md text-label-md">V</div>
+<span class="font-body-md text-body-md text-on-surface font-medium">Vannak</span>
+</div>
+<div class="flex items-center gap-xs text-[#059669] bg-[#d1fae5] px-sm py-xs rounded-md">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">Paid</span>
+</div>
+</div>
+<!-- Rith -->
+<div class="flex items-center justify-between p-sm hover:bg-surface-container-low rounded-xl transition-colors">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-label-md text-label-md">R</div>
+<span class="font-body-md text-body-md text-on-surface font-medium">Rith (You)</span>
+</div>
+<div class="flex items-center gap-xs text-[#b45309] bg-[#fef3c7] px-sm py-xs rounded-md">
+<span class="material-symbols-outlined text-[16px]">hourglass_empty</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">Waiting</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe h-16 shadow-[0_-1px_3px_rgba(0,0,0,0.05)] bg-surface dark:bg-on-surface rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 active:bg-surface-variant dark:active:bg-on-surface-variant scale-95 transition-transform duration-150 rounded-2xl" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 active:bg-surface-variant dark:active:bg-on-surface-variant scale-95 transition-transform duration-150 rounded-2xl" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label-sm text-label-sm">House</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary-fixed text-on-primary-container dark:text-on-primary-fixed rounded-2xl p-2 scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="receipt">receipt</span>
+<span class="font-label-sm text-label-sm">Expenses</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 active:bg-surface-variant dark:active:bg-on-surface-variant scale-95 transition-transform duration-150 rounded-2xl" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-label-sm text-label-sm">Payments</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 active:bg-surface-variant dark:active:bg-on-surface-variant scale-95 transition-transform duration-150 rounded-2xl" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+</body></html>

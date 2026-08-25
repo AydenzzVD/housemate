@@ -1,0 +1,12 @@
+# dependencies
+/housemate/node_modules
+/housemate/.next
+/housemate/out
+/housemate/build
+/housemate/.env*
+!/housemate/.env.local.example
+
+# OS and misc
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Budget - HouseMate</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-tint": "#0053db",
+                      "on-primary-container": "#eeefff",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "on-secondary-container": "#54647a",
+                      "background": "#faf8ff",
+                      "on-secondary": "#ffffff",
+                      "on-surface": "#191b23",
+                      "on-primary": "#ffffff",
+                      "surface-variant": "#e1e2ed",
+                      "surface-bright": "#faf8ff",
+                      "on-error-container": "#93000a",
+                      "inverse-primary": "#b4c5ff",
+                      "on-primary-fixed": "#00174b",
+                      "outline": "#737686",
+                      "tertiary": "#943700",
+                      "surface-dim": "#d9d9e5",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-container": "#ffede6",
+                      "secondary": "#505f76",
+                      "secondary-fixed": "#d3e4fe",
+                      "inverse-surface": "#2e3039",
+                      "on-error": "#ffffff",
+                      "outline-variant": "#c3c6d7",
+                      "tertiary-fixed-dim": "#ffb596",
+                      "surface": "#faf8ff",
+                      "on-tertiary": "#ffffff",
+                      "surface-container-high": "#e7e7f3",
+                      "tertiary-container": "#bc4800",
+                      "secondary-container": "#d0e1fb",
+                      "on-background": "#191b23",
+                      "on-surface-variant": "#434655",
+                      "surface-container": "#ededf9",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-highest": "#e1e2ed",
+                      "on-tertiary-fixed-variant": "#7d2d00",
+                      "inverse-on-surface": "#f0f0fb",
+                      "primary": "#004ac6",
+                      "surface-container-low": "#f3f3fe",
+                      "on-tertiary-fixed": "#360f00",
+                      "primary-container": "#2563eb",
+                      "error": "#ba1a1a",
+                      "on-secondary-fixed": "#0b1c30",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "tertiary-fixed": "#ffdbcd",
+                      "primary-fixed": "#dbe1ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "xs": "8px",
+                      "xxl": "48px",
+                      "base": "4px",
+                      "lg": "24px",
+                      "xl": "32px",
+                      "container-max": "1200px",
+                      "gutter": "16px",
+                      "margin-mobile": "16px",
+                      "sm": "12px",
+                      "md": "16px",
+                      "margin-desktop": "32px"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "display-financial": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "36px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-financial": [
+                              "40px",
+                              {
+                                      "lineHeight": "48px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      }
+              }
+          },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased min-h-screen flex">
+<!-- Desktop SideNav -->
+<nav class="hidden md:flex flex-col h-full py-xl px-md bg-surface shadow-sm fixed left-0 top-0 h-full w-[280px] z-50">
+<div class="flex items-center gap-sm mb-xl px-sm">
+<span class="material-symbols-outlined text-primary text-[32px]">other_houses</span>
+<div class="font-headline-lg text-headline-lg font-black text-primary">HouseMate</div>
+</div>
+<div class="mb-lg px-sm">
+<button class="w-full bg-primary text-on-primary rounded-xl py-sm px-md flex items-center justify-center gap-xs font-label-md text-label-md font-semibold hover:bg-primary-container transition-colors shadow-[0_1px_3px_rgba(0,0,0,0.05),_0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1),_0_4px_6px_-2px_rgba(0,0,0,0.05)] min-h-[48px]">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                Add Expense
+            </button>
+</div>
+<div class="flex-1 overflow-y-auto">
+<ul class="space-y-xs">
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary hover:bg-surface-container transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary hover:bg-surface-container transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">home_work</span>
+<span class="font-label-md text-label-md">House</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary hover:bg-surface-container transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-md text-label-md">Expenses</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg bg-primary/10 text-primary border-l-4 border-primary hover:bg-surface-container transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-md text-label-md">Payments</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary hover:bg-surface-container transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</li>
+</ul>
+</div>
+<div class="mt-auto pt-lg border-t border-surface-variant">
+<ul class="space-y-xs">
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary hover:bg-surface-container transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="font-label-md text-label-md">Profile</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary hover:bg-surface-container transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-[280px] p-margin-mobile md:p-margin-desktop min-h-screen">
+<div class="max-w-container-max mx-auto">
+<!-- Page Header -->
+<header class="mb-xl flex flex-col md:flex-row md:items-end justify-between gap-md">
+<div>
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-xs">Budget Overview</h1>
+<p class="font-body-md text-body-md text-secondary">Stay on track with your shared expenses.</p>
+</div>
+<div class="bg-surface px-lg py-sm rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05),_0_1px_2px_rgba(0,0,0,0.03)] border border-surface-variant inline-flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">calendar_today</span>
+<span class="font-label-md text-label-md text-on-surface">October 2023</span>
+</div>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+<!-- Main Budget Card (Spans 8 cols) -->
+<div class="lg:col-span-8 bg-surface rounded-[24px] p-lg shadow-[0_1px_3px_rgba(0,0,0,0.05),_0_1px_2px_rgba(0,0,0,0.03)] border border-surface-variant relative overflow-hidden">
+<!-- Subtle background decoration -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none"></div>
+<div class="flex flex-col h-full justify-between relative z-10">
+<div class="mb-xl">
+<div class="font-label-md text-label-md text-secondary uppercase tracking-wider mb-xs">Monthly Budget</div>
+<div class="font-display-financial text-display-financial text-on-surface">$400</div>
+</div>
+<!-- Progress Bar Section -->
+<div class="mb-lg">
+<div class="flex justify-between items-end mb-sm">
+<div>
+<span class="font-headline-md text-headline-md text-on-surface block">Spent $327</span>
+<span class="font-body-md text-body-md text-secondary">Remaining $73</span>
+</div>
+<div class="bg-primary/10 text-primary px-sm py-base rounded-full font-label-sm text-label-sm">82% Used</div>
+</div>
+<!-- Custom Progress Bar -->
+<div class="h-4 w-full bg-surface-container rounded-full overflow-hidden relative">
+<div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-1000 ease-out" style="width: 82%;"></div>
+<!-- Safe Zone Indicator -->
+<div class="absolute top-0 left-[75%] h-full w-[2px] bg-surface-variant z-10"></div>
+</div>
+<p class="font-body-md text-body-md text-secondary mt-sm flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px] text-tertiary-container">info</span>
+                                You're doing okay! Just a little careful spending needed.
+                            </p>
+</div>
+</div>
+</div>
+<!-- Daily Allowance Card (Spans 4 cols) -->
+<div class="lg:col-span-4 bg-surface rounded-[24px] p-lg shadow-[0_1px_3px_rgba(0,0,0,0.05),_0_1px_2px_rgba(0,0,0,0.03)] border border-surface-variant flex flex-col justify-center items-center text-center">
+<div class="w-16 h-16 rounded-full bg-secondary-container flex items-center justify-center mb-md">
+<span class="material-symbols-outlined text-primary text-[32px]">lightbulb</span>
+</div>
+<div class="font-label-md text-label-md text-secondary uppercase tracking-wider mb-xs">Estimated Daily Allowance</div>
+<div class="font-display-financial text-display-financial text-on-surface mb-xs">$12<span class="font-headline-md text-headline-md text-secondary">/day</span></div>
+<p class="font-body-md text-body-md text-secondary mt-sm">Based on remaining days in the month.</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Mobile BottomNavBar -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe h-16 shadow-lg bg-surface shadow-[0_-1px_3px_rgba(0,0,0,0.05)] rounded-t-xl border-t-0">
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 scale-95 transition-transform duration-150 active:bg-surface-variant rounded-2xl w-16 h-full" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 scale-95 transition-transform duration-150 active:bg-surface-variant rounded-2xl w-16 h-full" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-label-sm text-label-sm mt-1">House</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 scale-95 transition-transform duration-150 active:bg-surface-variant rounded-2xl w-16 h-full" href="#">
+<span class="material-symbols-outlined">receipt</span>
+<span class="font-label-sm text-label-sm mt-1">Expenses</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-2xl p-2 scale-95 transition-transform duration-150 active:bg-surface-variant w-16 h-full" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+<span class="font-label-sm text-label-sm mt-1">Payments</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 scale-95 transition-transform duration-150 active:bg-surface-variant rounded-2xl w-16 h-full" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

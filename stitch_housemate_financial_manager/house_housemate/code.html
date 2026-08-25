@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-background font-body-md text-on-background" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HouseMate - Shared Living Harmony</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#0053db",
+                        "on-primary-container": "#eeefff",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "on-secondary-container": "#54647a",
+                        "background": "#faf8ff",
+                        "on-secondary": "#ffffff",
+                        "on-surface": "#191b23",
+                        "on-primary": "#ffffff",
+                        "surface-variant": "#e1e2ed",
+                        "surface-bright": "#faf8ff",
+                        "on-error-container": "#93000a",
+                        "inverse-primary": "#b4c5ff",
+                        "on-primary-fixed": "#00174b",
+                        "outline": "#737686",
+                        "tertiary": "#943700",
+                        "surface-dim": "#d9d9e5",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-container": "#ffede6",
+                        "secondary": "#505f76",
+                        "secondary-fixed": "#d3e4fe",
+                        "inverse-surface": "#2e3039",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#c3c6d7",
+                        "tertiary-fixed-dim": "#ffb596",
+                        "surface": "#faf8ff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-high": "#e7e7f3",
+                        "tertiary-container": "#bc4800",
+                        "secondary-container": "#d0e1fb",
+                        "on-background": "#191b23",
+                        "on-surface-variant": "#434655",
+                        "surface-container": "#ededf9",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e1e2ed",
+                        "on-tertiary-fixed-variant": "#7d2d00",
+                        "inverse-on-surface": "#f0f0fb",
+                        "primary": "#004ac6",
+                        "surface-container-low": "#f3f3fe",
+                        "on-tertiary-fixed": "#360f00",
+                        "primary-container": "#2563eb",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#0b1c30",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "tertiary-fixed": "#ffdbcd",
+                        "primary-fixed": "#dbe1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xs": "8px",
+                        "xxl": "48px",
+                        "base": "4px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "container-max": "1200px",
+                        "gutter": "16px",
+                        "margin-mobile": "16px",
+                        "sm": "12px",
+                        "md": "16px",
+                        "margin-desktop": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "display-financial": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-lg": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "display-financial": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .ambient-shadow-1 { box-shadow: 0px 1px 3px rgba(0,0,0,0.05), 0px 1px 2px rgba(0,0,0,0.03); }
+        .ambient-shadow-2 { box-shadow: 0px 10px 15px -3px rgba(0,0,0,0.1), 0px 4px 6px -2px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body class="h-full antialiased selection:bg-primary-container selection:text-on-primary-container">
+<div class="flex h-full min-h-screen">
+<!-- TopAppBar (Mobile Only) -->
+<header class="md:hidden flex justify-between items-center w-full px-margin-mobile py-4 bg-surface dark:bg-on-surface shadow-sm fixed top-0 z-40 docked full-width top-0">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary dark:text-primary-fixed">HouseMate</h1>
+<div class="flex items-center gap-4 text-primary dark:text-primary-fixed">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary-container transition-colors" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary-container transition-colors" data-icon="help">help</span>
+</div>
+</header>
+<!-- SideNavBar (Desktop) -->
+<aside class="hidden md:flex flex-col h-full py-xl px-md fixed left-0 top-0 h-full w-[280px] bg-surface dark:bg-on-surface shadow-sm z-30">
+<div class="flex items-center gap-3 mb-10 pl-2">
+<img alt="HouseMate Logo" class="w-10 h-10 rounded-full" data-alt="A small, stylized logo icon representing a house or community in a modern, flat vector style. Light, soft blue tones on a white background, minimalist and corporate." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUn9XC4fVNxnSno1meTEN1ycP-aYtiH4atXhkYaWVnX2jfz9zFcx3xfIs1gir-aClwiHtT1O1Y0iSYHhxH0czLMjWsXcsD3o57pAkaRXv8BhRcgKlE9jt0xvP-s72wptLBHtkyAPtTEXCmQ4LW4fQf1ECuJ-fxIk-7C3cXulIBK5EJXuehW8Nl6MnhSXPjkvDi-cIV3wu1Qm7AhI-dGMEcRf6mmBGbuwJI98W2YFywQUq8lWXjff65Rg"/>
+<div>
+<h1 class="font-headline-lg text-headline-lg font-black text-primary dark:text-primary-fixed leading-none">HouseMate</h1>
+<p class="font-label-sm text-label-sm text-secondary dark:text-secondary-fixed-dim">Shared Living Harmony</p>
+</div>
+</div>
+<nav class="flex-1 space-y-2">
+<!-- Dashboard -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-all cursor-pointer transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<!-- House (ACTIVE) -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 dark:bg-primary-fixed/10 text-primary dark:text-primary-fixed border-l-4 border-primary cursor-pointer transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="home_work" style="font-variation-settings: 'FILL' 1;">home_work</span>
+<span class="font-label-md text-label-md font-bold">House</span>
+</a>
+<!-- Expenses -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-all cursor-pointer transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-label-md text-label-md">Expenses</span>
+</a>
+<!-- Payments -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-all cursor-pointer transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-label-md text-label-md">Payments</span>
+</a>
+<!-- Settings -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-all cursor-pointer transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 space-y-4">
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-[12px] shadow-sm hover:ambient-shadow-2 transition-all">
+                    Add Expense
+                </button>
+<div class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-md text-label-md">Profile</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 w-full md:ml-[280px] pt-[72px] md:pt-0 pb-20 md:pb-0 px-margin-mobile md:px-margin-desktop py-lg overflow-y-auto">
+<div class="max-w-[1200px] mx-auto space-y-xl">
+<!-- Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mt-8 md:mt-0">
+<div>
+<h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">Our House (5 members)</h2>
+<p class="font-body-md text-body-md text-secondary mt-1">Manage your shared living expenses</p>
+</div>
+</div>
+<!-- Bento Grid Layout for Content -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+<!-- Main Bills Area (Spans 2 columns on lg) -->
+<div class="lg:col-span-2 space-y-md">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Current Bills</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-sm">
+<!-- Rent Card -->
+<div class="bg-surface ambient-shadow-1 rounded-[16px] p-[24px] border border-outline-variant/30 flex flex-col justify-between hover:ambient-shadow-2 transition-shadow">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+</div>
+<h4 class="font-label-md text-label-md font-semibold text-on-surface">House Rent</h4>
+</div>
+<span class="px-2 py-1 bg-[#d3e4fe] text-primary font-label-sm text-label-sm rounded uppercase tracking-wider">Paid</span>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-financial text-display-financial text-on-surface">$100</span>
+<span class="font-body-md text-body-md text-secondary">Total</span>
+</div>
+<p class="font-label-md text-label-md text-primary mt-1">$20/person</p>
+</div>
+<div class="mt-6 pt-4 border-t border-surface-variant flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-secondary">Due: Oct 1st</span>
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full bg-secondary-container border border-surface"></div>
+<div class="w-6 h-6 rounded-full bg-tertiary-container border border-surface"></div>
+<div class="w-6 h-6 rounded-full bg-primary-container border border-surface"></div>
+</div>
+</div>
+</div>
+<!-- Electricity Card -->
+<div class="bg-surface ambient-shadow-1 rounded-[16px] p-[24px] border border-outline-variant/30 flex flex-col justify-between hover:ambient-shadow-2 transition-shadow">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-warning-container/20 rounded-lg text-tertiary">
+<span class="material-symbols-outlined" data-icon="bolt">bolt</span>
+</div>
+<h4 class="font-label-md text-label-md font-semibold text-on-surface">Electricity</h4>
+</div>
+<span class="px-2 py-1 bg-[#ffede6] text-tertiary font-label-sm text-label-sm rounded uppercase tracking-wider">Upcoming</span>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-financial text-display-financial text-on-surface">$32</span>
+<span class="font-body-md text-body-md text-secondary">Total</span>
+</div>
+<p class="font-label-md text-label-md text-tertiary mt-1">$6.40/person</p>
+</div>
+<div class="mt-6 pt-4 border-t border-surface-variant flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-secondary">Due: Oct 5th</span>
+</div>
+</div>
+<!-- Water Card -->
+<div class="bg-surface ambient-shadow-1 rounded-[16px] p-[24px] border border-outline-variant/30 flex flex-col justify-between hover:ambient-shadow-2 transition-shadow">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-secondary-container/50 rounded-lg text-secondary">
+<span class="material-symbols-outlined" data-icon="water_drop">water_drop</span>
+</div>
+<h4 class="font-label-md text-label-md font-semibold text-on-surface">Water</h4>
+</div>
+<span class="px-2 py-1 bg-[#d3e4fe] text-primary font-label-sm text-label-sm rounded uppercase tracking-wider">Paid</span>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-financial text-display-financial text-on-surface">$15</span>
+<span class="font-body-md text-body-md text-secondary">Total</span>
+</div>
+<p class="font-label-md text-label-md text-secondary mt-1">$3.00/person</p>
+</div>
+<div class="mt-6 pt-4 border-t border-surface-variant flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-secondary">Due: Oct 10th</span>
+</div>
+</div>
+<!-- Wi-Fi Card -->
+<div class="bg-surface ambient-shadow-1 rounded-[16px] p-[24px] border border-outline-variant/30 flex flex-col justify-between hover:ambient-shadow-2 transition-shadow">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-error-container/30 rounded-lg text-error">
+<span class="material-symbols-outlined" data-icon="wifi">wifi</span>
+</div>
+<h4 class="font-label-md text-label-md font-semibold text-on-surface">Wi-Fi</h4>
+</div>
+<span class="px-2 py-1 bg-[#ffdad6] text-error font-label-sm text-label-sm rounded uppercase tracking-wider">Overdue</span>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-financial text-display-financial text-on-surface">$45</span>
+<span class="font-body-md text-body-md text-secondary">Total</span>
+</div>
+<p class="font-label-md text-label-md text-error mt-1">$9.00/person</p>
+</div>
+<div class="mt-6 pt-4 border-t border-surface-variant flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-error">Due: Sep 28th</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Summary / Activity (Spans 1 column on lg) -->
+<div class="lg:col-span-1 space-y-md">
+<div class="bg-surface ambient-shadow-1 rounded-[16px] p-[24px] border border-outline-variant/30 h-full">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-6">House Summary</h3>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between items-end mb-2">
+<span class="font-label-md text-label-md text-secondary">Total Monthly</span>
+<span class="font-headline-md text-headline-md text-on-surface">$192</span>
+</div>
+<div class="flex justify-between items-end mb-2">
+<span class="font-label-md text-label-md text-secondary">Your Share</span>
+<span class="font-headline-md text-headline-md text-primary">$38.40</span>
+</div>
+</div>
+<div class="pt-6 border-t border-surface-variant">
+<h4 class="font-label-sm text-label-sm text-on-surface mb-3 uppercase tracking-wider">Contribution Progress</h4>
+<div class="w-full h-2 bg-primary/10 rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[60%]"></div>
+</div>
+<p class="font-label-sm text-label-sm text-secondary mt-2 text-right">60% Collected</p>
+</div>
+<div class="pt-6 border-t border-surface-variant relative overflow-hidden rounded-xl">
+<img alt="House Atmosphere" class="w-full h-32 object-cover rounded-xl opacity-80" data-alt="A softly lit, modern living room interior. Neutral tones, comfortable furniture, subtle green plants. The setting reflects a calm, organized shared living space suitable for a corporate minimalist aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmEib1W_6hDC9htzv0gF3UxHnsf6dEDtBRsGX5bE1BGHeKze-bl-vU6LwdqJu4aHwEw46TqXQYpl0SO7pBgs7_tFtzxb4htIQaSiZSEEOjFG3Ce_vQx-cv6VtH95HR3K2Nw-3k5JBbLW7p-S8YGcDHWh7y4xfxM_JQjAqlLj8DE2YDLc-cXsX_xZZGnU490wpGbhrvY2bN1DZUz70TTCi0MMINQd4Egadl6QrEGG65RIgPjJjpMRF9yg"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe h-16 shadow-lg bg-surface dark:bg-on-surface rounded-t-xl shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 active:bg-surface-variant dark:active:bg-on-surface-variant scale-95 transition-transform duration-150 rounded-2xl" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary-fixed text-on-primary-container dark:text-on-primary-fixed rounded-2xl p-2 active:bg-surface-variant dark:active:bg-on-surface-variant scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="group" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-label-sm text-label-sm-mobile mt-1 font-bold">House</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 active:bg-surface-variant dark:active:bg-on-surface-variant scale-95 transition-transform duration-150 rounded-2xl" href="#">
+<span class="material-symbols-outlined" data-icon="receipt">receipt</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">Expenses</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 active:bg-surface-variant dark:active:bg-on-surface-variant scale-95 transition-transform duration-150 rounded-2xl" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">Payments</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 active:bg-surface-variant dark:active:bg-on-surface-variant scale-95 transition-transform duration-150 rounded-2xl" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">Profile</span>
+</a>
+</nav>
+</div>
+</body></html>
