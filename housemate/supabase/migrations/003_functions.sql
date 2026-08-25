@@ -1,5 +1,4 @@
--- HouseMate Atomic RPC Functions
--- Run AFTER 001_schema.sql and 002_rls.sql
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ============================================================
 -- RPC: create_house_with_admin
@@ -31,7 +30,7 @@ BEGIN
 
   -- Generate a unique 6-character uppercase alphanumeric join code
   LOOP
-    SELECT UPPER(SUBSTRING(ENCODE(GEN_RANDOM_BYTES(4), 'hex') FROM 1 FOR 6))
+    SELECT UPPER(SUBSTRING(MD5(gen_random_uuid()::text) FROM 1 FOR 6))
     INTO v_join_code;
     
     SELECT EXISTS (
