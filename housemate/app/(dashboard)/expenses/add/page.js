@@ -3,24 +3,18 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getLocalStore, saveLocalStore } from '@/lib/store';
+import { addExpense } from '@/lib/expenses';
+import { getUserHouse } from '@/lib/houses';
 import { parseToCents, CATEGORY_ICONS, EXPENSE_CATEGORIES } from '@/lib/money';
 
 /**
- * Add Personal Expense Page / Form
- *
+ * Add Personal Expense Page — live multi-user data
  * Matches Stitch design: add_expense_housemate/screen.png
- *
- * - Big focal Amount input
- * - Category grid selector
- * - Date picker
- * - Note input
- * - Instant save to personal expenses
  */
 export default function AddExpensePage() {
   const router = useRouter();
-  const [store, setStore] = useState(null);
 
+  const [house, setHouse] = useState(null);
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('Food');
@@ -30,12 +24,12 @@ export default function AddExpensePage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    setStore(getLocalStore());
+    async function loadHouse() {
+      const hData = await getUserHouse();
+      setHouse(hData);
+    }
+    loadHouse();
   }, []);
-
-  if (!store) return null;
-
-  const { house, expenses, currentUser } = store;
 
   async function handleSave(e) {
     e.preventDefault();
@@ -46,21 +40,22 @@ export default function AddExpensePage() {
       return;
     }
 
+    setError('');
     setLoading(true);
 
-    const newExpense = {
-      id: `exp-${Date.now()}`,
-      user_id: currentUser.id,
+    const { error: addError } = await addExpense({
       title: title.trim() || `${category} Expense`,
-      amount_cents: cents,
+      amountCents: cents,
       category,
       date,
       note: note.trim() || null,
-    };
+    });
 
-    const nextExpenses = [newExpense, ...expenses];
-    const nextStore = { ...store, expenses: nextExpenses };
-    saveLocalStore(nextStore);
+    if (addError) {
+      setError(addError);
+      setLoading(false);
+      return;
+    }
 
     router.push('/expenses');
     router.refresh();
@@ -101,7 +96,7 @@ export default function AddExpensePage() {
             </span>
             <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-primary)' }}>
               <span className="text-display-financial" style={{ marginRight: 4 }}>
-                {house.currency}
+                {house?.currency || '$'}
               </span>
               <input
                 id="amount"

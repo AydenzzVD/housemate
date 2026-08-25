@@ -2,45 +2,61 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getLocalStore } from '@/lib/store';
+import { getUserHouse, getHouseMembers } from '@/lib/houses';
+import { getHouseBills } from '@/lib/bills';
 import { formatCents } from '@/lib/money';
 
 /**
- * Group Chat Payment Message Generator Page
- *
+ * Group Chat Payment Message Generator Page — live multi-user data
  * Matches Stitch design: payment_message_housemate/screen.png
- *
- * - Dynamically generates formatted message from live database bills
- * - 1-Click Copy to clipboard
- * - Customizable message text
  */
 export default function PaymentMessagePage() {
-  const [store, setStore] = useState(null);
+  const [house, setHouse] = useState(null);
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const s = getLocalStore();
-    setStore(s);
+    async function loadData() {
+      const hData = await getUserHouse();
+      setHouse(hData);
 
-    if (s) {
-      const memberCount = s.members.length || 5;
-      const totalCents = s.bills.reduce((sum, b) => sum + b.total_amount_cents, 0);
-      const perPersonCents = Math.round(totalCents / memberCount);
+      if (hData) {
+        const [membersData, billsData] = await Promise.all([
+          getHouseMembers(hData.id),
+          getHouseBills(hData.id),
+        ]);
 
-      // Build formatted text message matching Stitch specifications
-      const billLines = s.bills
-        .map(b => `${b.name}: ${formatCents(b.total_amount_cents, s.house.currency)}`)
-        .join('\n');
+        const memberCount = membersData.length || 1;
+        const totalCents = billsData.reduce((sum, b) => sum + b.total_amount_cents, 0);
+        const perPersonCents = Math.round(totalCents / memberCount);
 
-      const generated = `August House Payment 🏠\n\n${billLines}\n\nTotal: ${formatCents(totalCents, s.house.currency)}\n\n${memberCount} people → ${formatCents(perPersonCents, s.house.currency)}/person\n\nDue: September 1\n\nPlease pay when you can 🙏`;
+        const monthName = new Date().toLocaleString('en-US', { month: 'long' });
 
-      setMessage(generated);
+        const billLines = billsData.length > 0
+          ? billsData.map(b => `${b.name}: ${formatCents(b.total_amount_cents, hData.currency)}`).join('\n')
+          : 'No active bills';
+
+        const generated = `${monthName} House Payment 🏠\n\n${billLines}\n\nTotal: ${formatCents(totalCents, hData.currency)}\n\n${memberCount} people → ${formatCents(perPersonCents, hData.currency)}/person\n\nPlease pay when you can 🙏`;
+
+        setMessage(generated);
+      }
+      setLoading(false);
     }
+    loadData();
   }, []);
 
-  if (!store) return null;
+  if (loading) {
+    return (
+      <div style={{ padding: 'var(--space-xl)', maxWidth: 640, margin: '0 auto' }}>
+        <div className="skeleton" style={{ height: 40, width: 250, marginBottom: 'var(--space-md)' }} />
+        <div className="skeleton" style={{ height: 300, borderRadius: 'var(--radius-lg)' }} />
+      </div>
+    );
+  }
+
+  if (!house) return null;
 
   function handleCopy() {
     navigator.clipboard.writeText(message);

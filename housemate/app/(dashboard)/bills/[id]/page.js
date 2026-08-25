@@ -2,69 +2,108 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { getLocalStore, saveLocalStore } from '@/lib/store';
+import { getBillById } from '@/lib/bills';
+import { getMySavings, addSavingDeposit } from '@/lib/savings';
+import { getUserHouse } from '@/lib/houses';
 import { formatCents } from '@/lib/money';
+import { createBrowserClient } from '@supabase/ssr';
 
 /**
- * Bill Details Page
- *
+ * Bill Details Page — live multi-user data
  * Matches Stitch design: bill_details_housemate/screen.png
- *
- * - Bill Summary card ($45.00, frequency, next payment)
- * - Your Share card ($9.00)
- * - Wi-Fi Saving Card (Target: $3/mo, Actual Saved: $6, Remaining: $3)
- * - Payment Status matrix (Paid vs Waiting per member)
  */
 export default function BillDetailsPage({ params }) {
   const unwrappedParams = use(params);
   const billId = unwrappedParams.id;
 
-  const [store, setStore] = useState(null);
+  const [billData, setBillData] = useState(null);
+  const [house, setHouse] = useState(null);
+  const [savings, setSavings] = useState([]);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [savingsDeposit, setSavingsDeposit] = useState('3.00');
   const [showSavingModal, setShowSavingModal] = useState(false);
   const [toast, setToast] = useState('');
 
   useEffect(() => {
-    setStore(getLocalStore());
-  }, []);
+    async function loadData() {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      );
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
 
-  if (!store) return null;
+      const [bData, hData, sData] = await Promise.all([
+        getBillById(billId),
+        getUserHouse(),
+        getMySavings(billId),
+      ]);
 
-  const { house, members, bills, payments, savings, currentUser } = store;
-  const bill = bills.find(b => b.id === billId) || bills[3] || bills[0]; // fallback to Wi-Fi
-  const memberCount = members.length || 5;
+      setBillData(bData);
+      setHouse(hData);
+      setSavings(sData);
+      setLoading(false);
+    }
+    loadData();
+  }, [billId]);
 
-  const shareCents = Math.round(bill.total_amount_cents / memberCount);
-  const isWifi = bill.name.toLowerCase().includes('wifi') || bill.name.toLowerCase().includes('wi-fi') || bill.frequency === 'quarterly';
+  if (loading) {
+    return (
+      <div style={{ padding: 'var(--space-xl)', maxWidth: 880, margin: '0 auto' }}>
+        <div className="skeleton" style={{ height: 40, width: 200, marginBottom: 'var(--space-md)' }} />
+        <div className="skeleton" style={{ height: 250, borderRadius: 'var(--radius-lg)' }} />
+      </div>
+    );
+  }
+
+  if (!billData || !billData.bill) {
+    return (
+      <div style={{ padding: 'var(--space-xl)', textAlign: 'center' }}>
+        <h2>Bill not found</h2>
+        <Link href="/house" className="btn-primary" style={{ marginTop: 16, display: 'inline-flex' }}>
+          Back to House
+        </Link>
+      </div>
+    );
+  }
+
+  const { bill, latestCycle, payments } = billData;
+  const isAdmin = house?.myRole === 'admin';
+
+  // Per-member share from frozen bill_payments
+  const myPayment = payments.find(p => p.user_id === currentUserId);
+  const shareCents = myPayment?.share_amount_cents || (payments.length > 0 ? payments[0].share_amount_cents : Math.round(bill.total_amount_cents / 1));
+
+  const isWifi = bill.category === 'wifi' || bill.name.toLowerCase().includes('wifi') || bill.name.toLowerCase().includes('wi-fi') || bill.frequency === 'quarterly';
   const monthlyTargetCents = isWifi ? Math.round(shareCents / 3) : 0;
 
   // Actual saved cents by current user for this bill
-  const mySavingsList = savings.filter(s => s.bill_id === bill.id && s.user_id === currentUser.id);
-  const actualSavedCents = mySavingsList.reduce((sum, s) => sum + s.amount_cents, 0) || (isWifi ? 600 : 0); // demo $6.00
+  const actualSavedCents = savings.reduce((sum, s) => sum + s.amount_cents, 0);
   const remainingNeededCents = Math.max(0, shareCents - actualSavedCents);
   const savingPercentage = shareCents > 0 ? Math.min(100, Math.round((actualSavedCents / shareCents) * 100)) : 0;
 
-  function handleRecordSaving(e) {
+  async function handleRecordSaving(e) {
     e.preventDefault();
     const depositCents = Math.round(parseFloat(savingsDeposit || '0') * 100);
     if (depositCents <= 0) return;
 
-    const newSaving = {
-      id: `sav-${Date.now()}`,
-      bill_id: bill.id,
-      user_id: currentUser.id,
-      amount_cents: depositCents,
-      saved_date: new Date().toISOString().split('T')[0],
-      note: 'Manual saving deposit',
-    };
+    const { error } = await addSavingDeposit({
+      billId: bill.id,
+      amountCents: depositCents,
+      savedDate: new Date().toISOString().split('T')[0],
+      note: 'Wi-Fi saving deposit',
+    });
 
-    const nextSavings = [...savings, newSaving];
-    const nextStore = { ...store, savings: nextSavings };
-    setStore(nextStore);
-    saveLocalStore(nextStore);
-
-    setShowSavingModal(false);
-    setToast(`✓ Recorded ${formatCents(depositCents, house.currency)} towards ${bill.name}!`);
+    if (error) {
+      setToast(`❌ ${error}`);
+    } else {
+      setShowSavingModal(false);
+      setToast(`✓ Recorded ${formatCents(depositCents, house?.currency)} towards ${bill.name}!`);
+      // Refresh savings list
+      const updatedSavings = await getMySavings(bill.id);
+      setSavings(updatedSavings);
+    }
     setTimeout(() => setToast(''), 3000);
   }
 
@@ -83,10 +122,12 @@ export default function BillDetailsPage({ params }) {
           <h1 className="text-headline-lg text-on-surface">{bill.name}</h1>
         </div>
 
-        <Link href="/house" className="btn-secondary" style={{ padding: '6px 16px', borderRadius: 'var(--radius-full)' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
-          Edit
-        </Link>
+        {isAdmin && (
+          <Link href={`/bills/${bill.id}/edit`} className="btn-secondary" style={{ padding: '6px 16px', borderRadius: 'var(--radius-full)', textDecoration: 'none' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
+            Edit Bill
+          </Link>
+        )}
       </div>
 
       {/* Bento Grid Top Area */}
@@ -97,25 +138,27 @@ export default function BillDetailsPage({ params }) {
             Bill Summary
           </p>
           <div className="text-display-financial text-primary" style={{ marginBottom: 'var(--space-md)' }}>
-            {formatCents(bill.total_amount_cents, house.currency)}
+            {formatCents(bill.total_amount_cents, house?.currency)}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--color-surface-container)' }}>
               <span className="text-body-md text-secondary">Frequency</span>
               <span className="text-label-md font-semibold text-on-surface">
-                {bill.frequency === 'quarterly' ? 'Every 3 months' : 'Monthly'}
+                {bill.frequency === 'quarterly' ? 'Every 3 months' : bill.frequency === 'monthly' ? 'Monthly' : bill.frequency}
               </span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--color-surface-container)' }}>
-              <span className="text-body-md text-secondary">Next Payment</span>
-              <span className="text-label-md font-semibold text-on-surface">Sep 10</span>
+              <span className="text-body-md text-secondary">Next Due Date</span>
+              <span className="text-label-md font-semibold text-on-surface">
+                {latestCycle ? new Date(latestCycle.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : `Day ${bill.due_day_of_month} of month`}
+              </span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
               <span className="text-body-md text-secondary">Split</span>
-              <span className="text-label-md font-semibold text-on-surface">{memberCount} roommates</span>
+              <span className="text-label-md font-semibold text-on-surface">{payments.length || 1} roommates</span>
             </div>
           </div>
         </div>
@@ -136,9 +179,11 @@ export default function BillDetailsPage({ params }) {
               Your Share
             </span>
             <div className="text-display-financial" style={{ color: '#ffffff', margin: '4px 0' }}>
-              {formatCents(shareCents, house.currency)}
+              {formatCents(shareCents, house?.currency)}
             </div>
-            <p className="text-body-md" style={{ opacity: 0.9 }}>Due by Sep 10</p>
+            <p className="text-body-md" style={{ opacity: 0.9 }}>
+              {latestCycle ? `Due by ${new Date(latestCycle.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : `Due on Day ${bill.due_day_of_month}`}
+            </p>
           </div>
 
           {/* Wi-Fi Saving Tracker Card */}
@@ -146,19 +191,19 @@ export default function BillDetailsPage({ params }) {
             <div className="card" style={{ padding: 'var(--space-lg)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-xs)' }}>
                 <h3 className="text-headline-md text-on-surface" style={{ fontSize: 18 }}>
-                  Wi-Fi Saving
+                  Wi-Fi Saving Tracker
                 </h3>
                 <span className="badge badge-member" style={{ backgroundColor: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
-                  Save each month: {formatCents(monthlyTargetCents, house.currency)}
+                  Save: {formatCents(monthlyTargetCents, house?.currency)}/mo
                 </span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, margin: '8px 0 6px' }}>
                 <span className="text-primary font-bold">
-                  Saved {formatCents(actualSavedCents, house.currency)}
+                  Saved {formatCents(actualSavedCents, house?.currency)}
                 </span>
                 <span className="text-secondary">
-                  Remaining {formatCents(remainingNeededCents, house.currency)}
+                  Remaining {formatCents(remainingNeededCents, house?.currency)}
                 </span>
               </div>
 
@@ -183,56 +228,61 @@ export default function BillDetailsPage({ params }) {
       {/* Payment Status Section */}
       <div className="card" style={{ padding: 'var(--space-xl)' }}>
         <h3 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-md)' }}>
-          Roommate Payment Status
+          Roommate Payment Status ({latestCycle ? 'Current Cycle' : 'No cycle open'})
         </h3>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
-          {payments.map(p => {
-            const isMe = p.member_id === currentUser.id;
-            const pPaid = p.status === 'paid';
+        {payments.length === 0 ? (
+          <p className="text-body-md text-secondary">No payment records found for this bill cycle.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+            {payments.map(p => {
+              const isMe = p.user_id === currentUserId;
+              const pPaid = p.status === 'paid';
+              const name = p.profiles?.full_name || 'Member';
 
-            return (
-              <div
-                key={p.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 'var(--space-sm) var(--space-md)',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'var(--color-surface-container-low)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                  <div
-                    className="avatar avatar-sm"
-                    style={{
-                      backgroundColor: isMe ? 'var(--color-primary-container)' : 'var(--color-secondary-container)',
-                      color: isMe ? 'var(--color-on-primary-container)' : 'var(--color-on-secondary-container)',
-                    }}
-                  >
-                    {p.name[0]}
-                  </div>
-                  <span className="text-body-md text-on-surface font-medium">
-                    {p.name} {isMe && '(You)'}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-                  <span className="text-body-md font-semibold text-on-surface">
-                    {formatCents(shareCents, house.currency)}
-                  </span>
-                  <span className={`badge ${pPaid ? 'badge-paid' : 'badge-overdue'}`}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
-                      {pPaid ? 'check_circle' : 'hourglass_empty'}
+              return (
+                <div
+                  key={p.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: 'var(--space-sm) var(--space-md)',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: 'var(--color-surface-container-low)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                    <div
+                      className="avatar avatar-sm"
+                      style={{
+                        backgroundColor: isMe ? 'var(--color-primary-container)' : 'var(--color-surface-container)',
+                        color: isMe ? 'var(--color-on-primary-container)' : 'var(--color-on-surface)',
+                      }}
+                    >
+                      {name[0].toUpperCase()}
+                    </div>
+                    <span className="text-body-md text-on-surface font-medium">
+                      {name} {isMe && '(You)'}
                     </span>
-                    {pPaid ? 'Paid' : 'Waiting'}
-                  </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+                    <span className="text-body-md font-semibold text-on-surface">
+                      {formatCents(p.share_amount_cents, house?.currency)}
+                    </span>
+                    <span className={`badge ${pPaid ? 'badge-paid' : 'badge-overdue'}`}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                        {pPaid ? 'check_circle' : 'hourglass_empty'}
+                      </span>
+                      {pPaid ? 'Paid' : 'Waiting'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Deposit Modal */}
@@ -254,7 +304,7 @@ export default function BillDetailsPage({ params }) {
               Record Wi-Fi Savings
             </h3>
             <p className="text-body-md text-secondary" style={{ marginBottom: 'var(--space-md)' }}>
-              Log how much you have set aside for this quarter&apos;s Wi-Fi bill.
+              Log how much you have set aside for this bill.
             </p>
 
             <form onSubmit={handleRecordSaving} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>

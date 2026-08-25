@@ -2,41 +2,60 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getLocalStore } from '@/lib/store';
-import { formatCents, CATEGORY_ICONS, EXPENSE_CATEGORIES } from '@/lib/money';
+import { getMyExpenses } from '@/lib/expenses';
+import { getMyBudget } from '@/lib/budgets';
+import { getUserHouse } from '@/lib/houses';
+import { formatCents, CATEGORY_ICONS, EXPENSE_CATEGORIES, currentMonthYear } from '@/lib/money';
+import EmptyState from '@/components/EmptyState';
 
 /**
- * Personal Expenses Log Page
- *
+ * Personal Expenses Log Page — live multi-user data (strictly private)
  * Matches Stitch design: my_expenses_housemate/screen.png
- *
- * - Strictly private personal expenses
- * - Total spending this month ($247.50)
- * - Budget vs Remaining balance ($500 budget, $252.50 remaining)
- * - Quick "Record a Purchase" CTA card
- * - Category filter chips
- * - Recent expenses list
  */
 export default function ExpensesPage() {
-  const [store, setStore] = useState(null);
+  const [house, setHouse] = useState(null);
+  const [expenses, setExpenses] = useState([]);
+  const [budget, setBudget] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [selectedCat, setSelectedCat] = useState('All');
 
   useEffect(() => {
-    setStore(getLocalStore());
+    async function loadData() {
+      const monthYear = currentMonthYear();
+      const [hData, expData, bData] = await Promise.all([
+        getUserHouse(),
+        getMyExpenses(monthYear),
+        getMyBudget(monthYear),
+      ]);
+
+      setHouse(hData);
+      setExpenses(expData);
+      setBudget(bData);
+      setLoading(false);
+    }
+    loadData();
   }, []);
 
-  if (!store) return null;
+  if (loading) {
+    return (
+      <div style={{ padding: 'var(--space-xl)' }}>
+        <div className="skeleton" style={{ height: 40, width: 250, marginBottom: 'var(--space-md)' }} />
+        <div className="skeleton" style={{ height: 200, borderRadius: 'var(--radius-lg)' }} />
+      </div>
+    );
+  }
 
-  const { house, expenses, budget_cents = 50000 } = store;
-
+  const budgetCents = budget?.budget_cents ?? 0;
   const totalSpentCents = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
-  const remainingCents = Math.max(0, budget_cents - totalSpentCents);
-  const budgetUsedPct = budget_cents > 0 ? Math.min(100, Math.round((totalSpentCents / budget_cents) * 100)) : 0;
+  const remainingCents = Math.max(0, budgetCents - totalSpentCents);
+  const budgetUsedPct = budgetCents > 0 ? Math.min(100, Math.round((totalSpentCents / budgetCents) * 100)) : 0;
 
   const filteredExpenses = expenses.filter(e => {
     if (selectedCat === 'All') return true;
     return e.category === selectedCat;
   });
+
+  const monthName = new Date().toLocaleString('en-US', { month: 'long' });
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
@@ -44,7 +63,7 @@ export default function ExpensesPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div>
           <p className="text-label-md text-secondary" style={{ marginBottom: 2 }}>
-            My Private Money / August
+            My Private Money / {monthName}
           </p>
           <h1 className="text-headline-lg text-on-surface">Personal Spending</h1>
         </div>
@@ -81,37 +100,51 @@ export default function ExpensesPage() {
               Total personal spending this month
             </p>
             <div className="text-display-financial text-on-surface" style={{ marginBottom: 'var(--space-lg)' }}>
-              {formatCents(totalSpentCents, house.currency)}
+              {formatCents(totalSpentCents, house?.currency)}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', flexWrap: 'wrap' }}>
               <div>
-                <span className="text-label-sm text-secondary uppercase tracking-wider">Budget</span>
+                <span className="text-label-sm text-secondary uppercase tracking-wider">Monthly Budget</span>
                 <p className="text-headline-md text-on-surface">
-                  {formatCents(budget_cents, house.currency)}
+                  {budgetCents > 0 ? formatCents(budgetCents, house?.currency) : 'Not set'}
                 </p>
               </div>
 
-              <div style={{ width: 1, height: 32, backgroundColor: 'var(--color-surface-container-high)' }} />
+              {budgetCents > 0 && (
+                <>
+                  <div style={{ width: 1, height: 32, backgroundColor: 'var(--color-surface-container-high)' }} />
 
-              <div>
-                <span className="text-label-sm text-secondary uppercase tracking-wider">Remaining</span>
-                <p className="text-headline-md text-primary font-bold">
-                  {formatCents(remainingCents, house.currency)}
-                </p>
+                  <div>
+                    <span className="text-label-sm text-secondary uppercase tracking-wider">Remaining</span>
+                    <p className="text-headline-md text-primary font-bold">
+                      {formatCents(remainingCents, house?.currency)}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {budgetCents > 0 && (
+            <div style={{ marginTop: 'var(--space-lg)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
+                <span className="text-secondary">{budgetUsedPct}% of budget used</span>
+                <span className="text-primary font-semibold">{budgetUsedPct > 100 ? 'Over Budget' : 'On Track'}</span>
+              </div>
+              <div className="progress-bar-track">
+                <div className="progress-bar-fill" style={{ width: `${budgetUsedPct}%`, backgroundColor: budgetUsedPct > 100 ? 'var(--color-error)' : undefined }} />
               </div>
             </div>
-          </div>
+          )}
 
-          <div style={{ marginTop: 'var(--space-lg)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-              <span className="text-secondary">{budgetUsedPct}% of budget used</span>
-              <span className="text-primary font-semibold">On Track</span>
+          {budgetCents === 0 && (
+            <div style={{ marginTop: 'var(--space-md)' }}>
+              <Link href="/budget" className="text-label-md text-primary font-semibold" style={{ textDecoration: 'none' }}>
+                Set a monthly budget →
+              </Link>
             </div>
-            <div className="progress-bar-track">
-              <div className="progress-bar-fill" style={{ width: `${budgetUsedPct}%` }} />
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Quick Action CTA Card (4 cols) */}
@@ -201,11 +234,13 @@ export default function ExpensesPage() {
         </h2>
 
         {filteredExpenses.length === 0 ? (
-          <div className="empty-state">
-            <span className="material-symbols-outlined empty-state-icon">receipt_long</span>
-            <h3>No expenses in this category</h3>
-            <p>Log a purchase to start tracking your personal finances.</p>
-          </div>
+          <EmptyState
+            icon="🛍️"
+            title="No expenses logged yet"
+            description="Log your daily coffee, transport, or groceries to see where your money goes."
+            actionLabel="Add First Expense"
+            actionHref="/expenses/add"
+          />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {filteredExpenses.map((exp, idx) => {
@@ -238,7 +273,12 @@ export default function ExpensesPage() {
                     </div>
 
                     <div>
-                      <p className="text-headline-md" style={{ fontSize: 16 }}>{exp.title}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <p className="text-headline-md" style={{ fontSize: 16 }}>{exp.title}</p>
+                        <Link href={`/expenses/${exp.id}/edit`} style={{ color: 'var(--color-secondary)', fontSize: 14 }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
+                        </Link>
+                      </div>
                       <p className="text-label-sm text-secondary">
                         {exp.date} • {exp.category} {exp.note && `• ${exp.note}`}
                       </p>
@@ -247,7 +287,7 @@ export default function ExpensesPage() {
 
                   <div style={{ textAlign: 'right' }}>
                     <p className="text-headline-md text-on-surface" style={{ fontSize: 18 }}>
-                      {formatCents(exp.amount_cents, house.currency)}
+                      {formatCents(exp.amount_cents, house?.currency)}
                     </p>
                     <span className="badge badge-member" style={{ fontSize: 10, marginTop: 2 }}>
                       Personal

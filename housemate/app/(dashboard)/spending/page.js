@@ -2,29 +2,43 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getLocalStore } from '@/lib/store';
-import { formatCents, CATEGORY_ICONS } from '@/lib/money';
+import { getMyExpenses } from '@/lib/expenses';
+import { getUserHouse } from '@/lib/houses';
+import { formatCents, CATEGORY_ICONS, currentMonthYear } from '@/lib/money';
+import EmptyState from '@/components/EmptyState';
 
 /**
- * Monthly Spending Analysis Page
- *
+ * Monthly Spending Analysis Page — live multi-user data (strictly private)
  * Matches Stitch design: monthly_spending_housemate/screen.png
- *
- * - Total Monthly Spending ($327.50)
- * - Category breakdown donut / percentage list
- * - Comparison with previous month (July vs August, +17%)
- * - Daily average spend
  */
 export default function MonthlySpendingPage() {
-  const [store, setStore] = useState(null);
+  const [house, setHouse] = useState(null);
+  const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const monthYear = currentMonthYear();
 
   useEffect(() => {
-    setStore(getLocalStore());
-  }, []);
+    async function loadData() {
+      const [hData, expData] = await Promise.all([
+        getUserHouse(),
+        getMyExpenses(monthYear),
+      ]);
+      setHouse(hData);
+      setExpenses(expData);
+      setLoading(false);
+    }
+    loadData();
+  }, [monthYear]);
 
-  if (!store) return null;
-
-  const { house, expenses } = store;
+  if (loading) {
+    return (
+      <div style={{ padding: 'var(--space-xl)', maxWidth: 1000, margin: '0 auto' }}>
+        <div className="skeleton" style={{ height: 40, width: 250, marginBottom: 'var(--space-md)' }} />
+        <div className="skeleton" style={{ height: 300, borderRadius: 'var(--radius-lg)' }} />
+      </div>
+    );
+  }
 
   // Group personal spending by category
   const categoryTotals = {};
@@ -35,18 +49,8 @@ export default function MonthlySpendingPage() {
     totalCents += e.amount_cents;
   });
 
-  // Default demonstration breakdown if few expenses
-  if (totalCents === 0) {
-    categoryTotals['Food'] = 9600;
-    categoryTotals['Shopping'] = 6150;
-    categoryTotals['Bills'] = 17000;
-    totalCents = 32750;
-  }
-
   const categoryEntries = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
-  const julyTotalCents = 28000; // $280.00
-  const diffCents = totalCents - julyTotalCents;
-  const diffPercent = Math.round((diffCents / julyTotalCents) * 100);
+  const monthName = new Date().toLocaleString('en-US', { month: 'long' });
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)', maxWidth: 1000, margin: '0 auto' }}>
@@ -57,10 +61,10 @@ export default function MonthlySpendingPage() {
             <Link href="/expenses" className="btn-icon" style={{ width: 32, height: 32, textDecoration: 'none' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
             </Link>
-            <h1 className="text-headline-md text-on-surface">August Spending Analysis</h1>
+            <h1 className="text-headline-md text-on-surface">{monthName} Spending Analysis</h1>
           </div>
           <div className="text-display-financial text-primary">
-            {formatCents(totalCents, house.currency)}
+            {formatCents(totalCents, house?.currency)}
           </div>
         </div>
 
@@ -76,129 +80,122 @@ export default function MonthlySpendingPage() {
         </div>
       </div>
 
-      {/* Bento Grid Layout */}
-      <div className="bento-grid bento-grid-12">
-        {/* Category Breakdown (8 cols) */}
-        <div className="card col-span-8" style={{ padding: 'var(--space-xl)' }}>
-          <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-lg)' }}>
-            Where did my money go?
-          </h2>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: 'var(--space-xl)',
-              alignItems: 'center',
-            }}
-          >
-            {/* Donut Style Radial Representation */}
-            <div
-              style={{
-                width: 180,
-                height: 180,
-                borderRadius: 'var(--radius-full)',
-                border: '14px solid var(--color-surface-container)',
-                borderTopColor: 'var(--color-primary)',
-                borderRightColor: 'var(--color-primary-container)',
-                borderBottomColor: 'var(--color-tertiary-container)',
-                borderLeftColor: 'var(--color-secondary-container)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto',
-              }}
-            >
-              <span className="text-label-sm text-secondary uppercase tracking-wider">Total</span>
-              <span className="text-headline-md text-on-surface font-bold">
-                {formatCents(totalCents, house.currency)}
-              </span>
-            </div>
-
-            {/* Category Bars List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-              {categoryEntries.map(([cat, amountCents]) => {
-                const pct = totalCents > 0 ? Math.round((amountCents / totalCents) * 100) : 0;
-                const icon = CATEGORY_ICONS[cat] || '💡';
-
-                return (
-                  <div key={cat}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <span className="text-body-md text-on-surface font-medium" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span>{icon}</span> {cat}
-                      </span>
-                      <span className="text-label-md font-semibold text-on-surface">
-                        {formatCents(amountCents, house.currency)}{' '}
-                        <span className="text-secondary" style={{ fontSize: 12, fontWeight: 400 }}>({pct}%)</span>
-                      </span>
-                    </div>
-
-                    <div className="progress-bar-track" style={{ height: 6 }}>
-                      <div className="progress-bar-fill" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+      {expenses.length === 0 ? (
+        <div className="card" style={{ padding: 'var(--space-xl)' }}>
+          <EmptyState
+            icon="📊"
+            title="No expenses to analyze"
+            description="Start logging personal purchases to see your category breakdown."
+            actionLabel="Add Expense"
+            actionHref="/expenses/add"
+          />
         </div>
-
-        {/* Comparison with Previous Month (4 cols) */}
-        <div className="card col-span-4" style={{ padding: 'var(--space-xl)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
+      ) : (
+        /* Bento Grid Layout */
+        <div className="bento-grid bento-grid-12">
+          {/* Category Breakdown (8 cols) */}
+          <div className="card col-span-8" style={{ padding: 'var(--space-xl)' }}>
             <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-lg)' }}>
-              Compared with July
+              Where did my money go?
             </h2>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 'var(--space-md)' }}>
-              <div>
-                <span className="text-label-sm text-secondary uppercase tracking-wider">July</span>
-                <div className="text-headline-md text-secondary" style={{ marginTop: 2 }}>
-                  {formatCents(julyTotalCents, house.currency)}
-                </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: 'var(--space-xl)',
+                alignItems: 'center',
+              }}
+            >
+              {/* Donut Style Radial Representation */}
+              <div
+                style={{
+                  width: 180,
+                  height: 180,
+                  borderRadius: 'var(--radius-full)',
+                  border: '14px solid var(--color-surface-container)',
+                  borderTopColor: 'var(--color-primary)',
+                  borderRightColor: 'var(--color-primary-container)',
+                  borderBottomColor: 'var(--color-tertiary-container)',
+                  borderLeftColor: 'var(--color-secondary-container)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto',
+                }}
+              >
+                <span className="text-label-sm text-secondary uppercase tracking-wider">Total</span>
+                <span className="text-headline-md text-on-surface font-bold">
+                  {formatCents(totalCents, house?.currency)}
+                </span>
               </div>
 
-              <div style={{ textAlign: 'right' }}>
-                <span className="text-label-sm text-primary uppercase tracking-wider font-bold">August</span>
-                <div className="text-headline-md text-primary font-bold" style={{ marginTop: 2 }}>
-                  {formatCents(totalCents, house.currency)}
-                </div>
-              </div>
-            </div>
+              {/* Category Bars List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                {categoryEntries.map(([cat, amountCents]) => {
+                  const pct = totalCents > 0 ? Math.round((amountCents / totalCents) * 100) : 0;
+                  const icon = CATEGORY_ICONS[cat] || '💡';
 
-            {/* Comparison Bars */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', margin: 'var(--space-md) 0' }}>
-              <div className="progress-bar-track" style={{ height: 16 }}>
-                <div className="progress-bar-fill" style={{ width: '75%', backgroundColor: 'var(--color-secondary)' }} />
-              </div>
-              <div className="progress-bar-track" style={{ height: 16 }}>
-                <div className="progress-bar-fill" style={{ width: '90%', backgroundColor: 'var(--color-primary)' }} />
+                  return (
+                    <div key={cat}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <span className="text-body-md text-on-surface font-medium" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>{icon}</span> {cat}
+                        </span>
+                        <span className="text-label-md font-semibold text-on-surface">
+                          {formatCents(amountCents, house?.currency)}{' '}
+                          <span className="text-secondary" style={{ fontSize: 12, fontWeight: 400 }}>({pct}%)</span>
+                        </span>
+                      </div>
+
+                      <div className="progress-bar-track" style={{ height: 6 }}>
+                        <div className="progress-bar-fill" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              color: diffCents > 0 ? 'var(--color-danger)' : 'var(--color-success)',
-              fontWeight: 600,
-              fontSize: 15,
-              paddingTop: 'var(--space-md)',
-              borderTop: '1px solid var(--color-surface-container)',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-              {diffCents > 0 ? 'trending_up' : 'trending_down'}
-            </span>
-            <span>
-              {diffCents > 0 ? '+' : ''}{formatCents(diffCents, house.currency)} ({diffPercent > 0 ? '+' : ''}{diffPercent}%) vs last month
-            </span>
+          {/* Quick Insights (4 cols) */}
+          <div className="card col-span-4" style={{ padding: 'var(--space-xl)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-lg)' }}>
+                Spending Insights
+              </h2>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                <div>
+                  <span className="text-label-sm text-secondary uppercase tracking-wider">Top Category</span>
+                  <div className="text-headline-md text-primary font-bold" style={{ marginTop: 2 }}>
+                    {categoryEntries[0] ? `${CATEGORY_ICONS[categoryEntries[0][0]]} ${categoryEntries[0][0]}` : 'N/A'}
+                  </div>
+                </div>
+
+                <div className="divider" />
+
+                <div>
+                  <span className="text-label-sm text-secondary uppercase tracking-wider">Total Transactions</span>
+                  <div className="text-headline-md text-on-surface font-semibold" style={{ marginTop: 2 }}>
+                    {expenses.length} logged
+                  </div>
+                </div>
+
+                <div className="divider" />
+
+                <div>
+                  <span className="text-label-sm text-secondary uppercase tracking-wider">Daily Average</span>
+                  <div className="text-headline-md text-on-surface font-semibold" style={{ marginTop: 2 }}>
+                    {formatCents(Math.round(totalCents / new Date().getDate()), house?.currency)} / day
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

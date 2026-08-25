@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { getLocalStore, saveLocalStore } from '@/lib/store';
 
 /**
  * Login Page
@@ -34,18 +33,6 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const isPlaceholder = !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
-
-      if (isPlaceholder) {
-        // Instant Demo Login
-        const storeData = getLocalStore();
-        const found = storeData.members.find(m => m.email.toLowerCase() === email.trim().toLowerCase()) || storeData.members[0];
-        saveLocalStore({ ...storeData, currentUser: found });
-
-        router.push('/dashboard');
-        return;
-      }
-
       const { error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -65,12 +52,9 @@ export default function LoginPage() {
         router.refresh();
       }
     } catch (err) {
-      console.warn('Supabase offline or unreachable, falling back to demo login:', err);
-      const storeData = getLocalStore();
-      const found = storeData.members.find(m => m.email.toLowerCase() === email.trim().toLowerCase()) || storeData.members[0];
-      saveLocalStore({ ...storeData, currentUser: found });
-
-      router.push('/dashboard');
+      console.error('Login error:', err);
+      setError('Unable to connect. Please check your internet connection and try again.');
+      setLoading(false);
     }
   }
 

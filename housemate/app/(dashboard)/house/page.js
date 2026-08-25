@@ -2,33 +2,56 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getLocalStore } from '@/lib/store';
+import { getUserHouse, getHouseMembers } from '@/lib/houses';
+import { getHouseBills } from '@/lib/bills';
 import { formatCents, BILL_ICONS } from '@/lib/money';
+import EmptyState from '@/components/EmptyState';
 
 /**
- * House Overview Page
- *
+ * House Overview Page — live multi-user data
  * Matches Stitch design: house_housemate/screen.png
- *
- * - House Name & Total active members
- * - Join code widget with copy button
- * - Grid of Shared Bills (Rent $100, Electricity $32.50, Water $15, Wi-Fi $45)
- * - Quick stats: Total Household monthly commitment & per-person breakdown
- * - "Add Bill" action for admin
  */
 export default function HousePage() {
-  const [store, setStore] = useState(null);
+  const [house, setHouse] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [bills, setBills] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setStore(getLocalStore());
+    async function loadData() {
+      const houseData = await getUserHouse();
+      setHouse(houseData);
+
+      if (houseData) {
+        const [membersData, billsData] = await Promise.all([
+          getHouseMembers(houseData.id),
+          getHouseBills(houseData.id),
+        ]);
+        setMembers(membersData);
+        setBills(billsData);
+      }
+      setLoading(false);
+    }
+    loadData();
   }, []);
 
-  if (!store) return null;
+  if (loading) {
+    return (
+      <div style={{ padding: 'var(--space-xl)' }}>
+        <div className="skeleton" style={{ height: 40, width: 300, marginBottom: 'var(--space-md)' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-md)' }}>
+          <div className="skeleton" style={{ height: 300, borderRadius: 'var(--radius-lg)' }} />
+          <div className="skeleton" style={{ height: 300, borderRadius: 'var(--radius-lg)' }} />
+        </div>
+      </div>
+    );
+  }
 
-  const { house, members, bills, currentUser } = store;
-  const isAdmin = currentUser.role === 'admin';
-  const memberCount = members.length || 5;
+  if (!house) return null;
+
+  const isAdmin = house.myRole === 'admin';
+  const memberCount = members.length || 1;
 
   // Calculate total monthly commitment
   const totalBillsCents = bills.reduce((sum, b) => sum + b.total_amount_cents, 0);
@@ -48,7 +71,7 @@ export default function HousePage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div>
           <h1 className="text-headline-lg text-on-surface" style={{ marginBottom: 4 }}>
-            {house.name} ({memberCount} members)
+            {house.name} ({memberCount} member{memberCount !== 1 ? 's' : ''})
           </h1>
           <p className="text-body-md text-secondary">
             Manage your shared living expenses &amp; bills
@@ -77,97 +100,109 @@ export default function HousePage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 className="text-headline-md text-on-surface">Shared Household Bills</h2>
             <span className="text-label-sm text-secondary uppercase tracking-wider">
-              {bills.length} Active Bills
+              {bills.length} Active Bill{bills.length !== 1 ? 's' : ''}
             </span>
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-              gap: 'var(--space-md)',
-            }}
-          >
-            {bills.map(bill => {
-              const perPerson = Math.round(bill.total_amount_cents / memberCount);
-              const icon = BILL_ICONS[bill.category] || 'receipt_long';
-              const isWifi = bill.name.toLowerCase().includes('wi-fi') || bill.frequency === 'quarterly';
+          {bills.length === 0 ? (
+            <div className="card" style={{ padding: 'var(--space-xl)' }}>
+              <EmptyState
+                icon="📄"
+                title="No shared bills created"
+                description={isAdmin ? "Create your first bill to split expenses with roommates." : "Your house admin hasn't created any shared bills yet."}
+                actionLabel={isAdmin ? "Add First Bill" : null}
+                actionHref="/bills/add"
+              />
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                gap: 'var(--space-md)',
+              }}
+            >
+              {bills.map(bill => {
+                const perPerson = Math.round(bill.total_amount_cents / memberCount);
+                const icon = BILL_ICONS[bill.category] || 'receipt_long';
+                const isWifi = bill.category === 'wifi' || bill.name.toLowerCase().includes('wi-fi') || bill.frequency === 'quarterly';
 
-              return (
-                <Link
-                  key={bill.id}
-                  href={`/bills/${bill.id}`}
-                  className="card-interactive"
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    minHeight: 200,
-                    textDecoration: 'none',
-                    color: 'inherit',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 'var(--radius-md)',
-                          backgroundColor: 'rgba(0, 74, 198, 0.1)',
-                          color: 'var(--color-primary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <span className="material-symbols-outlined">{icon}</span>
-                      </div>
-                      <h3 className="text-headline-md" style={{ fontSize: 18 }}>{bill.name}</h3>
-                    </div>
-
-                    <span className={`badge ${bill.frequency === 'quarterly' ? 'badge-upcoming' : 'badge-paid'}`}>
-                      {bill.frequency === 'quarterly' ? 'Quarterly' : 'Monthly'}
-                    </span>
-                  </div>
-
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-xs)' }}>
-                      <span className="text-display-financial text-on-surface" style={{ fontSize: 32 }}>
-                        {formatCents(bill.total_amount_cents, house.currency)}
-                      </span>
-                      <span className="text-body-md text-secondary">Total</span>
-                    </div>
-
-                    <p className="text-label-md text-primary" style={{ marginTop: 4, fontWeight: 600 }}>
-                      {formatCents(perPerson, house.currency)} / person
-                    </p>
-                  </div>
-
-                  <div
+                return (
+                  <Link
+                    key={bill.id}
+                    href={`/bills/${bill.id}`}
+                    className="card-interactive"
                     style={{
-                      marginTop: 'var(--space-md)',
-                      paddingTop: 'var(--space-sm)',
-                      borderTop: '1px solid var(--color-surface-container)',
                       display: 'flex',
+                      flexDirection: 'column',
                       justifyContent: 'space-between',
-                      alignItems: 'center',
+                      minHeight: 200,
+                      textDecoration: 'none',
+                      color: 'inherit',
                     }}
                   >
-                    <span className="text-label-sm text-secondary">
-                      Due: Day {bill.due_day_of_month} of month
-                    </span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                        <div
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'rgba(0, 74, 198, 0.1)',
+                            color: 'var(--color-primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <span className="material-symbols-outlined">{icon}</span>
+                        </div>
+                        <h3 className="text-headline-md" style={{ fontSize: 18 }}>{bill.name}</h3>
+                      </div>
 
-                    {isWifi && (
-                      <span className="text-label-sm text-secondary" style={{ color: 'var(--color-tertiary)' }}>
-                        Save $3/mo
+                      <span className={`badge ${bill.frequency === 'quarterly' ? 'badge-upcoming' : 'badge-paid'}`}>
+                        {bill.frequency === 'quarterly' ? 'Quarterly' : bill.frequency === 'monthly' ? 'Monthly' : bill.frequency}
                       </span>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-xs)' }}>
+                        <span className="text-display-financial text-on-surface" style={{ fontSize: 32 }}>
+                          {formatCents(bill.total_amount_cents, house.currency)}
+                        </span>
+                        <span className="text-body-md text-secondary">Total</span>
+                      </div>
+
+                      <p className="text-label-md text-primary" style={{ marginTop: 4, fontWeight: 600 }}>
+                        {formatCents(perPerson, house.currency)} / person
+                      </p>
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 'var(--space-md)',
+                        paddingTop: 'var(--space-sm)',
+                        borderTop: '1px solid var(--color-surface-container)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span className="text-label-sm text-secondary">
+                        Due: Day {bill.due_day_of_month} of month
+                      </span>
+
+                      {isWifi && (
+                        <span className="text-label-sm text-secondary" style={{ color: 'var(--color-tertiary)' }}>
+                          Wi-Fi Saving
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Right Column: House Stats & Join Code (4 cols) */}
@@ -227,7 +262,7 @@ export default function HousePage() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span className="text-body-md text-secondary">Active Members</span>
-                <span className="text-headline-md text-on-surface">{memberCount} people</span>
+                <span className="text-headline-md text-on-surface">{memberCount} {memberCount === 1 ? 'person' : 'people'}</span>
               </div>
 
               <div className="divider" style={{ margin: 'var(--space-xs) 0' }} />

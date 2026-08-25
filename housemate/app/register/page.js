@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { getLocalStore, saveLocalStore } from '@/lib/store';
 
 /**
  * Register Page
@@ -51,27 +50,6 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const isPlaceholder = !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
-
-      if (isPlaceholder) {
-        // Instant Demo Registration Fallback
-        const newDemoUser = {
-          id: `usr-${Date.now()}`,
-          full_name: fullName.trim(),
-          email: email.trim(),
-          role: 'admin',
-          avatar: fullName.trim()[0].toUpperCase(),
-        };
-
-        const storeData = getLocalStore();
-        const updatedMembers = [...storeData.members, newDemoUser];
-        const nextStore = { ...storeData, members: updatedMembers, currentUser: newDemoUser };
-        saveLocalStore(nextStore);
-
-        router.push('/onboarding');
-        return;
-      }
-
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -102,22 +80,9 @@ export default function RegisterPage() {
         router.refresh();
       }
     } catch (err) {
-      console.warn('Supabase offline or unreachable, falling back to local session:', err);
-      // Fallback to local session on fetch failure
-      const newDemoUser = {
-        id: `usr-${Date.now()}`,
-        full_name: fullName.trim(),
-        email: email.trim(),
-        role: 'admin',
-        avatar: fullName.trim()[0].toUpperCase(),
-      };
-
-      const storeData = getLocalStore();
-      const updatedMembers = [...storeData.members, newDemoUser];
-      const nextStore = { ...storeData, members: updatedMembers, currentUser: newDemoUser };
-      saveLocalStore(nextStore);
-
-      router.push('/onboarding');
+      console.error('Registration error:', err);
+      setError('Unable to connect. Please check your internet connection and try again.');
+      setLoading(false);
     }
   }
 

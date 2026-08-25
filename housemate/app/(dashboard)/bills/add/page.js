@@ -3,54 +3,52 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getLocalStore, saveLocalStore } from '@/lib/store';
+import { getUserHouse, getHouseMembers } from '@/lib/houses';
+import { createBill } from '@/lib/bills';
 import { parseToCents, formatCents } from '@/lib/money';
 
 /**
- * Add New Shared Bill Page
- *
+ * Add New Shared Bill Page — live multi-user data
+ * Admin only.
  * Matches Stitch design: add_bill_housemate/screen.png
- *
- * Form area:
- * - Bill Name (e.g. Wi-Fi, Electricity, Rent)
- * - Amount ($)
- * - Frequency (One time, Monthly, Every 3 months, Yearly)
- * - Due Date
- * - Split Method: Equally
- *
- * Live Bento Preview:
- * - Total Amount
- * - Split among N people
- * - Your Share ($X.XX)
- * - Savings tip
  */
 export default function AddBillPage() {
   const router = useRouter();
-  const [store, setStore] = useState(null);
 
+  const [house, setHouse] = useState(null);
+  const [members, setMembers] = useState([]);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('45.00');
   const [frequency, setFrequency] = useState('monthly');
-  const [dueDate, setDueDate] = useState('');
+  const [dueDayOfMonth, setDueDayOfMonth] = useState(1);
+  const [category, setCategory] = useState('general');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    setStore(getLocalStore());
-    // Default due date = 1st of next month
-    const now = new Date();
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    setDueDate(nextMonth.toISOString().split('T')[0]);
+    async function loadHouse() {
+      const houseData = await getUserHouse();
+      setHouse(houseData);
+      if (houseData) {
+        const membersData = await getHouseMembers(houseData.id);
+        setMembers(membersData);
+      }
+    }
+    loadHouse();
   }, []);
 
-  if (!store) return null;
+  if (!house) {
+    return (
+      <div style={{ padding: 'var(--space-xl)' }}>
+        <div className="skeleton" style={{ height: 40, width: 250, marginBottom: 'var(--space-md)' }} />
+        <div className="skeleton" style={{ height: 350, borderRadius: 'var(--radius-lg)' }} />
+      </div>
+    );
+  }
 
-  const { house, members, bills } = store;
-  const memberCount = members.length || 5;
-
-  // Live calculation
+  const memberCount = members.length || 1;
   const totalCents = parseToCents(amount);
-  const shareCents = memberCount > 0 ? Math.round(totalCents / memberCount) : totalCents;
+  const shareCents = Math.round(totalCents / memberCount);
   const monthlySavingCents = frequency === 'quarterly' ? Math.round(shareCents / 3) : 0;
 
   async function handleSaveBill(e) {
@@ -59,35 +57,38 @@ export default function AddBillPage() {
       setError('Please enter a bill name.');
       return;
     }
-
     if (totalCents <= 0) {
       setError('Please enter a valid amount.');
       return;
     }
 
+    setError('');
     setLoading(true);
 
-    const newBill = {
-      id: `bill-${Date.now()}`,
-      name: name.trim(),
-      total_amount_cents: totalCents,
-      frequency,
-      due_day_of_month: parseInt(dueDate.split('-')[2] || '1', 10),
-      category: name.toLowerCase().includes('rent')
-        ? 'rent'
-        : name.toLowerCase().includes('electr')
-        ? 'electricity'
-        : name.toLowerCase().includes('water')
-        ? 'water'
-        : name.toLowerCase().includes('wifi') || name.toLowerCase().includes('wi-fi')
-        ? 'wifi'
-        : 'general',
-      is_active: true,
-    };
+    // Auto category detection if general
+    let finalCat = category;
+    if (finalCat === 'general') {
+      const lower = name.toLowerCase();
+      if (lower.includes('rent')) finalCat = 'rent';
+      else if (lower.includes('electr')) finalCat = 'electricity';
+      else if (lower.includes('water')) finalCat = 'water';
+      else if (lower.includes('wifi') || lower.includes('wi-fi') || lower.includes('internet')) finalCat = 'wifi';
+    }
 
-    const nextBills = [...bills, newBill];
-    const nextStore = { ...store, bills: nextBills };
-    saveLocalStore(nextStore);
+    const { data, error: createError } = await createBill({
+      houseId: house.id,
+      name: name.trim(),
+      totalAmountCents: totalCents,
+      frequency,
+      dueDayOfMonth: parseInt(dueDayOfMonth, 10),
+      category: finalCat,
+    });
+
+    if (createError) {
+      setError(createError);
+      setLoading(false);
+      return;
+    }
 
     router.push('/house');
     router.refresh();
@@ -175,8 +176,8 @@ export default function AddBillPage() {
                 </div>
               </div>
 
-              {/* Grid: Frequency + Due Date */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-md)' }}>
+              {/* Grid: Frequency + Due Day */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-md)' }}>
                 <div>
                   <label htmlFor="bill-freq" className="input-label">
                     Frequency
@@ -198,17 +199,39 @@ export default function AddBillPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="bill-date" className="input-label">
-                    Due Date
+                  <label htmlFor="bill-day" className="input-label">
+                    Due Day of Month
                   </label>
                   <input
-                    id="bill-date"
-                    type="date"
+                    id="bill-day"
+                    type="number"
+                    min="1"
+                    max="28"
                     required
-                    value={dueDate}
-                    onChange={e => setDueDate(e.target.value)}
+                    value={dueDayOfMonth}
+                    onChange={e => setDueDayOfMonth(e.target.value)}
                     className="input-field"
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="bill-cat" className="input-label">
+                    Category
+                  </label>
+                  <div className="select-wrapper">
+                    <select
+                      id="bill-cat"
+                      value={category}
+                      onChange={e => setCategory(e.target.value)}
+                      className="select-field"
+                    >
+                      <option value="general">General / Other</option>
+                      <option value="rent">House Rent</option>
+                      <option value="electricity">Electricity</option>
+                      <option value="water">Water</option>
+                      <option value="wifi">Wi-Fi / Internet</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -220,7 +243,7 @@ export default function AddBillPage() {
               Split Details
             </h2>
             <p className="text-body-md text-secondary" style={{ marginBottom: 'var(--space-md)' }}>
-              Automatically split equally among all {memberCount} active housemates.
+              Automatically split equally among all {memberCount} active housemate{memberCount !== 1 ? 's' : ''}.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
@@ -237,8 +260,8 @@ export default function AddBillPage() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                    <div className="avatar avatar-sm">{m.avatar || m.full_name[0]}</div>
-                    <span className="text-body-md text-on-surface">{m.full_name}</span>
+                    <div className="avatar avatar-sm">{(m.profiles?.full_name || 'U')[0].toUpperCase()}</div>
+                    <span className="text-body-md text-on-surface">{m.profiles?.full_name || 'Member'}</span>
                   </div>
                   <span className="text-label-md text-primary font-semibold">
                     {formatCents(shareCents, house.currency)}
@@ -248,14 +271,14 @@ export default function AddBillPage() {
             </div>
           </div>
 
-          {/* Buttons for Mobile Form */}
+          {/* Buttons */}
           <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
             <Link href="/house" className="btn-secondary" style={{ flex: 1, textDecoration: 'none' }}>
               Cancel
             </Link>
             <button type="submit" disabled={loading} className="btn-primary" style={{ flex: 2 }}>
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>save</span>
-              {loading ? 'Saving Bill...' : 'Save Bill'}
+              {loading ? 'Creating Bill...' : 'Create Bill'}
             </button>
           </div>
         </form>
@@ -295,7 +318,6 @@ export default function AddBillPage() {
               </div>
             </div>
 
-            {/* Total Amount Big Display */}
             <div style={{ textAlign: 'center' }}>
               <span style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.8 }}>
                 Total Amount
@@ -320,7 +342,6 @@ export default function AddBillPage() {
               </div>
             </div>
 
-            {/* Split Breakdown Box */}
             <div
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.12)',
@@ -341,14 +362,13 @@ export default function AddBillPage() {
               <div className="divider" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }} />
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ opacity: 0.9, fontSize: 14 }}>Your Share</span>
+                <span style={{ opacity: 0.9, fontSize: 14 }}>Share / person</span>
                 <span className="text-headline-lg font-bold" style={{ color: '#ffffff' }}>
                   {formatCents(shareCents, house.currency)}
                 </span>
               </div>
             </div>
 
-            {/* Wi-Fi Quarterly Saving Banner */}
             {monthlySavingCents > 0 && (
               <div
                 style={{

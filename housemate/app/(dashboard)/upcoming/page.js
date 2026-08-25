@@ -1,79 +1,56 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { getLocalStore } from '@/lib/store';
+import { getUserHouse, getHouseMembers } from '@/lib/houses';
+import { getUpcomingBillCycles } from '@/lib/payments';
 import { formatCents, BILL_ICONS } from '@/lib/money';
+import EmptyState from '@/components/EmptyState';
 
 /**
- * Upcoming Payments Schedule Page
- *
+ * Upcoming Payments Schedule Page — live multi-user data
  * Matches Stitch design: upcoming_payments_housemate/screen.png
- *
- * - Timeline of scheduled recurring payments
- * - Due dates & countdown tags
- * - Filter by frequency
  */
 export default function UpcomingPaymentsPage() {
-  const [store, setStore] = useState(null);
+  const [house, setHouse] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [upcomingList, setUpcomingList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    setStore(getLocalStore());
+    async function loadData() {
+      const hData = await getUserHouse();
+      setHouse(hData);
+
+      if (hData) {
+        const [mList, uList] = await Promise.all([
+          getHouseMembers(hData.id),
+          getUpcomingBillCycles(hData.id),
+        ]);
+        setMembers(mList);
+        setUpcomingList(uList);
+      }
+      setLoading(false);
+    }
+    loadData();
   }, []);
 
-  if (!store) return null;
+  if (loading) {
+    return (
+      <div style={{ padding: 'var(--space-xl)', maxWidth: 880, margin: '0 auto' }}>
+        <div className="skeleton" style={{ height: 40, width: 250, marginBottom: 'var(--space-md)' }} />
+        <div className="skeleton" style={{ height: 200, borderRadius: 'var(--radius-lg)' }} />
+      </div>
+    );
+  }
 
-  const { house, members, bills } = store;
-  const memberCount = members.length || 5;
+  if (!house) return null;
 
-  const upcomingList = [
-    {
-      id: 'up-1',
-      name: 'September House Rent',
-      category: 'rent',
-      dueDate: 'Sep 1, 2026',
-      dueIn: 'Due in 3 days',
-      totalCents: 10000,
-      frequency: 'monthly',
-      status: 'urgent',
-    },
-    {
-      id: 'up-2',
-      name: 'Electricity',
-      category: 'electricity',
-      dueDate: 'Sep 5, 2026',
-      dueIn: 'Due in 7 days',
-      totalCents: 3250,
-      frequency: 'monthly',
-      status: 'upcoming',
-    },
-    {
-      id: 'up-3',
-      name: 'Water Bill',
-      category: 'water',
-      dueDate: 'Sep 10, 2026',
-      dueIn: 'Due in 12 days',
-      totalCents: 1500,
-      frequency: 'monthly',
-      status: 'upcoming',
-    },
-    {
-      id: 'up-4',
-      name: 'Wi-Fi (Q3 Payment)',
-      category: 'wifi',
-      dueDate: 'Sep 10, 2026',
-      dueIn: 'Due in 12 days',
-      totalCents: 4500,
-      frequency: 'quarterly',
-      status: 'quarterly',
-      savingNote: 'Save $3.00/month',
-    },
-  ];
+  const memberCount = members.length || 1;
 
   const filteredList = upcomingList.filter(item => {
     if (filter === 'all') return true;
-    return item.frequency === filter;
+    return item.bills?.frequency === filter;
   });
 
   return (
@@ -133,77 +110,95 @@ export default function UpcomingPaymentsPage() {
         </div>
       </div>
 
-      {/* Upcoming Cards List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-        {filteredList.map(item => {
-          const share = Math.round(item.totalCents / memberCount);
-          const icon = BILL_ICONS[item.category] || 'receipt_long';
+      {filteredList.length === 0 ? (
+        <div className="card" style={{ padding: 'var(--space-xl)' }}>
+          <EmptyState
+            icon="📅"
+            title="No upcoming payments scheduled"
+            description="Active bill cycles will appear here as their due dates approach."
+          />
+        </div>
+      ) : (
+        /* Upcoming Cards List */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          {filteredList.map(item => {
+            const bill = item.bills;
+            const share = Math.round(item.total_amount_cents / memberCount);
+            const icon = BILL_ICONS[bill?.category] || 'receipt_long';
 
-          return (
-            <div
-              key={item.id}
-              className="card-interactive"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: 'var(--space-lg)',
-                flexWrap: 'wrap',
-                gap: 'var(--space-md)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: item.status === 'urgent' ? 'var(--color-danger-bg)' : 'var(--color-secondary-container)',
-                    color: item.status === 'urgent' ? 'var(--color-danger)' : 'var(--color-primary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <span className="material-symbols-outlined">{icon}</span>
+            const due = new Date(item.due_date);
+            const today = new Date();
+            const daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+
+            const isUrgent = daysLeft <= 3;
+            const dueLabel = daysLeft === 0 ? 'Due Today' : daysLeft < 0 ? 'Overdue' : `Due in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+
+            return (
+              <div
+                key={item.id}
+                className="card-interactive"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 'var(--space-lg)',
+                  flexWrap: 'wrap',
+                  gap: 'var(--space-md)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: isUrgent ? 'var(--color-danger-bg)' : 'var(--color-secondary-container)',
+                      color: isUrgent ? 'var(--color-danger)' : 'var(--color-primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span className="material-symbols-outlined">{icon}</span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-headline-md" style={{ fontSize: 18, marginBottom: 2 }}>
+                      {bill?.name}
+                    </h3>
+                    <p className="text-body-md text-secondary" style={{ fontSize: 14 }}>
+                      {due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {dueLabel}
+                    </p>
+                    {bill?.frequency === 'quarterly' && (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          fontSize: 12,
+                          color: 'var(--color-tertiary)',
+                          fontWeight: 600,
+                          marginTop: 2,
+                        }}
+                      >
+                        💡 Quarterly Bill — Wi-Fi Saving Tracked
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div>
-                  <h3 className="text-headline-md" style={{ fontSize: 18, marginBottom: 2 }}>
-                    {item.name}
-                  </h3>
-                  <p className="text-body-md text-secondary" style={{ fontSize: 14 }}>
-                    {item.dueDate} • {item.dueIn}
-                  </p>
-                  {item.savingNote && (
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        fontSize: 12,
-                        color: 'var(--color-tertiary)',
-                        fontWeight: 600,
-                        marginTop: 2,
-                      }}
-                    >
-                      💡 {item.savingNote}
-                    </span>
-                  )}
+                <div style={{ textAlign: 'right' }}>
+                  <div className="text-headline-md text-on-surface" style={{ fontSize: 20 }}>
+                    {formatCents(share, house.currency)}
+                    <span className="text-body-md text-secondary" style={{ fontSize: 14, fontWeight: 400 }}> /person</span>
+                  </div>
+                  <span className="text-label-sm text-secondary" style={{ display: 'block', marginTop: 2 }}>
+                    Total: {formatCents(item.total_amount_cents, house.currency)}
+                  </span>
                 </div>
               </div>
-
-              <div style={{ textAlign: 'right' }}>
-                <div className="text-headline-md text-on-surface" style={{ fontSize: 20 }}>
-                  {formatCents(share, house.currency)}
-                  <span className="text-body-md text-secondary" style={{ fontSize: 14, fontWeight: 400 }}> /person</span>
-                </div>
-                <span className="text-label-sm text-secondary" style={{ display: 'block', marginTop: 2 }}>
-                  Total: {formatCents(item.totalCents, house.currency)}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

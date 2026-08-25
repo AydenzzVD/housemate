@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
+import { joinHouse } from '@/lib/houses';
 
 /**
  * Join House Page
@@ -18,7 +18,6 @@ import { createClient } from '@/lib/supabase/client';
  */
 export default function JoinHousePage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,70 +36,33 @@ export default function JoinHousePage() {
     setError('');
     setLoading(true);
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
+    const { data, error: joinError } = await joinHouse(cleanCode);
 
-      if (!user) {
-        // Fallback for mock demo session
-        setSuccess('Joined house successfully!');
-        setTimeout(() => router.push('/dashboard'), 800);
-        return;
-      }
-
-      // Call secure join_house_by_code RPC
-      const { data, error: rpcError } = await supabase.rpc('join_house_by_code', {
-        p_join_code: cleanCode,
-      });
-
-      if (rpcError) {
-        // Fallback: Direct check if RPC not migrated yet
-        const { data: house, error: houseErr } = await supabase
-          .from('houses')
-          .select('id, name')
-          .eq('join_code', cleanCode)
-          .single();
-
-        if (houseErr || !house) {
-          throw new Error('House code not found. Please check with your house admin.');
-        }
-
-        const { data: existingMember } = await supabase
-          .from('house_members')
-          .select('id')
-          .eq('house_id', house.id)
-          .eq('user_id', user.id)
-          .single();
-
-        if (existingMember) {
-          throw new Error('You are already a member of this house.');
-        }
-
-        const { error: joinErr } = await supabase.from('house_members').insert({
-          house_id: house.id,
-          user_id: user.id,
-          role: 'member',
-        });
-
-        if (joinErr) throw joinErr;
-
-        setSuccess(`Successfully joined ${house.name}!`);
-        setTimeout(() => {
-          router.push('/dashboard');
-          router.refresh();
-        }, 1000);
+    if (joinError) {
+      if (joinError.includes('not found')) {
+        setError('House code not found. Please check with your house admin.');
+      } else if (joinError.includes('already a member')) {
+        setError('You are already a member of this house.');
       } else {
-        setSuccess(`Successfully joined ${data.name}!`);
-        setTimeout(() => {
-          router.push('/dashboard');
-          router.refresh();
-        }, 1000);
+        setError(joinError || 'Could not join house. Please check the code.');
       }
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Could not join house. Please check the code.');
-    } finally {
       setLoading(false);
+      return;
     }
+
+    // Set the house membership cookie so middleware knows this user has a house
+    await fetch('/api/house/set-cookie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'set' }),
+    });
+
+    setSuccess(`Successfully joined ${data.name}!`);
+    setLoading(false);
+    setTimeout(() => {
+      router.push('/dashboard');
+      router.refresh();
+    }, 1000);
   }
 
   return (

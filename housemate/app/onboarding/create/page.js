@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
+import { createHouse } from '@/lib/houses';
 
 /**
  * Create House Page
@@ -15,7 +15,6 @@ import { createClient } from '@/lib/supabase/client';
  */
 export default function CreateHousePage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [houseName, setHouseName] = useState('');
   const [currency, setCurrency] = useState('$');
@@ -34,65 +33,23 @@ export default function CreateHousePage() {
     setError('');
     setLoading(true);
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
+    const { data, error: createError } = await createHouse(houseName, currency);
 
-      if (!user) {
-        // Fallback for mock demo session
-        const mockCode = 'OUR5X7';
-        setCreatedHouse({
-          house_id: 'mock-house-1',
-          name: houseName.trim(),
-          join_code: mockCode,
-          role: 'admin',
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Call the atomic create_house_with_admin RPC
-      const { data, error: rpcError } = await supabase.rpc('create_house_with_admin', {
-        p_name: houseName.trim(),
-        p_currency: currency,
-      });
-
-      if (rpcError) {
-        // Fallback: Direct insert if RPC not executed yet in Supabase
-        const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const { data: houseData, error: houseErr } = await supabase
-          .from('houses')
-          .insert({
-            name: houseName.trim(),
-            currency: currency,
-            join_code: joinCode,
-            created_by: user.id,
-          })
-          .select()
-          .single();
-
-        if (houseErr) throw houseErr;
-
-        await supabase.from('house_members').insert({
-          house_id: houseData.id,
-          user_id: user.id,
-          role: 'admin',
-        });
-
-        setCreatedHouse({
-          house_id: houseData.id,
-          name: houseData.name,
-          join_code: houseData.join_code,
-          role: 'admin',
-        });
-      } else {
-        setCreatedHouse(data);
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Failed to create house. Please try again.');
-    } finally {
+    if (createError) {
+      setError(createError || 'Failed to create house. Please try again.');
       setLoading(false);
+      return;
     }
+
+    // Set the house membership cookie so middleware knows this user has a house
+    await fetch('/api/house/set-cookie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'set' }),
+    });
+
+    setCreatedHouse(data);
+    setLoading(false);
   }
 
   function handleCopy() {
