@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getUserHouse, getHouseMembers } from '@/lib/houses';
+import { useRouter } from 'next/navigation';
+import { getUserHouse, getHouseMembers, removeMember, leaveHouse } from '@/lib/houses';
 import { getCurrentCyclePayments } from '@/lib/payments';
 import { createBrowserClient } from '@supabase/ssr';
 import EmptyState from '@/components/EmptyState';
@@ -12,12 +13,19 @@ import EmptyState from '@/components/EmptyState';
  * Matches Stitch design: house_members_housemate/screen.png
  */
 export default function HouseMembersPage() {
+  const router = useRouter();
   const [house, setHouse] = useState(null);
   const [members, setMembers] = useState([]);
   const [cycleGroups, setCycleGroups] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+
+  // Modals & Action states
+  const [memberToRemove, setMemberToRemove] = useState(null);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     async function loadData() {
@@ -63,13 +71,45 @@ export default function HouseMembersPage() {
     }
   }
 
+  async function handleConfirmRemove() {
+    if (!memberToRemove) return;
+    setActionLoading(true);
+    setActionError('');
+
+    const { error } = await removeMember(memberToRemove.user_id);
+    if (error) {
+      setActionError(error);
+      setActionLoading(false);
+      return;
+    }
+
+    setMembers(prev => prev.filter(m => m.user_id !== memberToRemove.user_id));
+    setMemberToRemove(null);
+    setActionLoading(false);
+  }
+
+  async function handleConfirmLeave() {
+    setActionLoading(true);
+    setActionError('');
+
+    const { error } = await leaveHouse();
+    if (error) {
+      setActionError(error);
+      setActionLoading(false);
+      return;
+    }
+
+    router.push('/onboarding');
+  }
+
   // Get payment status for each member across latest cycles
   const firstGroup = cycleGroups[0] || null;
+  const isAdmin = house.myRole === 'admin';
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
           <Link href="/house" className="btn-icon" style={{ textDecoration: 'none' }}>
             <span className="material-symbols-outlined">arrow_back</span>
@@ -84,16 +124,30 @@ export default function HouseMembersPage() {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleCopyCode}
-          className="btn-secondary"
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-            {copied ? 'check' : 'share'}
-          </span>
-          {copied ? 'Code Copied!' : 'Invite Roommate'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+          <button
+            type="button"
+            onClick={handleCopyCode}
+            className="btn-secondary"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+              {copied ? 'check' : 'share'}
+            </span>
+            {copied ? 'Code Copied!' : 'Invite Roommate'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setActionError(''); setShowLeaveModal(true); }}
+            className="btn-secondary"
+            style={{ color: 'var(--color-error, #d32f2f)', borderColor: 'rgba(211, 47, 47, 0.3)' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+              logout
+            </span>
+            Leave House
+          </button>
+        </div>
       </div>
 
       {/* Main Members Grid */}
@@ -173,6 +227,21 @@ export default function HouseMembersPage() {
                             {isPaid ? 'Paid' : 'Waiting'}
                           </span>
                         )}
+
+                        {/* Admin Action: Remove Roommate */}
+                        {isAdmin && !isMe && member.role !== 'admin' && (
+                          <button
+                            type="button"
+                            onClick={() => { setActionError(''); setMemberToRemove(member); }}
+                            className="btn-icon"
+                            title="Remove from house"
+                            style={{ color: 'var(--color-error, #d32f2f)', marginLeft: 'var(--space-xs)' }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                              person_remove
+                            </span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -220,7 +289,7 @@ export default function HouseMembersPage() {
                   <span className="badge badge-admin">Admin</span>
                 </div>
                 <p className="text-body-md text-secondary" style={{ fontSize: 14 }}>
-                  Can add, edit, and deactivate shared bills, generate payment summary messages, and manage house settings.
+                  Can add, edit, and deactivate shared bills, remove members, generate payment summary messages, and manage house settings.
                 </p>
               </div>
 
@@ -231,13 +300,118 @@ export default function HouseMembersPage() {
                   <span className="badge badge-member">Member</span>
                 </div>
                 <p className="text-body-md text-secondary" style={{ fontSize: 14 }}>
-                  Can view shared bills, mark their own share as paid, track personal expenses, and record Wi-Fi savings.
+                  Can view shared bills, mark their own share as paid, track personal expenses, leave the house, and record Wi-Fi savings.
                 </p>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal: Remove Member */}
+      {memberToRemove && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: 'var(--space-md)',
+          }}
+        >
+          <div className="card fade-in" style={{ maxWidth: 420, width: '100%', padding: 'var(--space-xl)' }}>
+            <h3 className="text-headline-lg text-on-surface" style={{ marginBottom: 'var(--space-xs)' }}>
+              Remove Roommate?
+            </h3>
+            <p className="text-body-md text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
+              Are you sure you want to remove <strong>{memberToRemove.profiles?.full_name || 'this roommate'}</strong> from <strong>{house.name}</strong>? They will lose access to house bills.
+            </p>
+
+            {actionError && (
+              <div className="error-message" style={{ marginBottom: 'var(--space-md)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>error</span>
+                {actionError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-sm)' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setMemberToRemove(null)}
+                disabled={actionLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleConfirmRemove}
+                disabled={actionLoading}
+                style={{ backgroundColor: 'var(--color-error, #d32f2f)' }}
+              >
+                {actionLoading ? 'Removing...' : 'Remove Member'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Leave House */}
+      {showLeaveModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: 'var(--space-md)',
+          }}
+        >
+          <div className="card fade-in" style={{ maxWidth: 420, width: '100%', padding: 'var(--space-xl)' }}>
+            <h3 className="text-headline-lg text-on-surface" style={{ marginBottom: 'var(--space-xs)' }}>
+              Leave House?
+            </h3>
+            <p className="text-body-md text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
+              Are you sure you want to leave <strong>{house.name}</strong>? {isAdmin && members.length > 1 ? 'Since you are Admin, another member will be automatically promoted to Admin.' : ''}
+            </p>
+
+            {actionError && (
+              <div className="error-message" style={{ marginBottom: 'var(--space-md)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>error</span>
+                {actionError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-sm)' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setShowLeaveModal(false)}
+                disabled={actionLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleConfirmLeave}
+                disabled={actionLoading}
+                style={{ backgroundColor: 'var(--color-error, #d32f2f)' }}
+              >
+                {actionLoading ? 'Leaving...' : 'Confirm Leave'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

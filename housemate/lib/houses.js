@@ -90,3 +90,43 @@ export async function joinHouse(code) {
   if (error) return { data: null, error: error.message };
   return { data, error: null };
 }
+
+/**
+ * Remove a roommate from the house (Admin only).
+ * Calls the remove_house_member RPC (atomic, SECURITY DEFINER).
+ * @param {string} targetUserId
+ * @returns {Promise<{data: any, error: string|null}>}
+ */
+export async function removeMember(targetUserId) {
+  const supabase = getClient();
+
+  const { data, error } = await supabase.rpc('remove_house_member', {
+    p_target_user_id: targetUserId,
+  });
+
+  if (error) return { data: null, error: error.message };
+  return { data, error: null };
+}
+
+/**
+ * Leave the current house.
+ * Calls the leave_house RPC (atomic, SECURITY DEFINER).
+ * @returns {Promise<{data: any, error: string|null}>}
+ */
+export async function leaveHouse() {
+  const supabase = getClient();
+
+  const { data, error } = await supabase.rpc('leave_house');
+
+  if (error) return { data: null, error: error.message };
+
+  // Clear house membership cookie
+  await fetch('/api/house/set-cookie', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'clear' }),
+  });
+
+  return { data, error: null };
+}
+
