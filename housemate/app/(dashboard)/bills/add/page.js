@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { getUserHouse, getHouseMembers } from '@/lib/houses';
 import { createBill } from '@/lib/bills';
 import { parseToCents, formatCents } from '@/lib/money';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * Add New Shared Bill Page — live multi-user data
@@ -14,6 +15,7 @@ import { parseToCents, formatCents } from '@/lib/money';
  */
 export default function AddBillPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [house, setHouse] = useState(null);
   const [members, setMembers] = useState([]);
@@ -54,11 +56,11 @@ export default function AddBillPage() {
   async function handleSaveBill(e) {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Please enter a bill name.');
+      setError(t('bills.error_name'));
       return;
     }
     if (totalCents <= 0) {
-      setError('Please enter a valid amount.');
+      setError(t('bills.error_amount'));
       return;
     }
 
@@ -101,7 +103,7 @@ export default function AddBillPage() {
         <Link href="/house" className="btn-icon" style={{ textDecoration: 'none' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </Link>
-        <h1 className="text-headline-lg text-on-surface">Add New Bill</h1>
+        <h1 className="text-headline-lg text-on-surface">{t('bills.add_title')}</h1>
       </div>
 
       {error && (
@@ -117,20 +119,20 @@ export default function AddBillPage() {
         <form onSubmit={handleSaveBill} className="col-span-7" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
           <div className="card" style={{ padding: 'var(--space-xl)' }}>
             <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-lg)' }}>
-              Bill Details
+              {t('bills.bill_details')}
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
               {/* Bill Name */}
               <div>
                 <label htmlFor="bill-name" className="input-label">
-                  Bill Name
+                  {t('bills.bill_name')}
                 </label>
                 <input
                   id="bill-name"
                   type="text"
                   required
-                  placeholder="e.g., Wi-Fi, Electricity, House Rent"
+                  placeholder={t('bills.bill_name_placeholder')}
                   value={name}
                   onChange={e => setName(e.target.value)}
                   className="input-field"
@@ -141,7 +143,7 @@ export default function AddBillPage() {
               {/* Total Amount */}
               <div>
                 <label htmlFor="bill-amount" className="input-label">
-                  Total Amount ({house.currency})
+                  {t('bills.total_amount', { currency: house.currency })}
                 </label>
                 <div style={{ position: 'relative' }}>
                   <span
@@ -180,7 +182,7 @@ export default function AddBillPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-md)' }}>
                 <div>
                   <label htmlFor="bill-freq" className="input-label">
-                    Frequency
+                    {t('bills.frequency_label')}
                   </label>
                   <div className="select-wrapper">
                     <select
@@ -189,18 +191,18 @@ export default function AddBillPage() {
                       onChange={e => setFrequency(e.target.value)}
                       className="select-field"
                     >
-                      <option value="monthly">Monthly</option>
-                      <option value="quarterly">Every 3 months (Quarterly)</option>
-                      <option value="semi_annual">Every 6 months</option>
-                      <option value="yearly">Yearly</option>
-                      <option value="one_time">One time</option>
+                      <option value="monthly">{t('bills.freq_monthly')}</option>
+                      <option value="quarterly">{t('bills.freq_quarterly')}</option>
+                      <option value="semi_annual">{t('bills.freq_semi_annual')}</option>
+                      <option value="yearly">{t('bills.freq_yearly')}</option>
+                      <option value="one_time">{t('bills.freq_one_time')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
                   <label htmlFor="bill-day" className="input-label">
-                    Due Day of Month
+                    {t('bills.due_day_label')}
                   </label>
                   <input
                     id="bill-day"
@@ -216,7 +218,7 @@ export default function AddBillPage() {
 
                 <div>
                   <label htmlFor="bill-cat" className="input-label">
-                    Category
+                    {t('bills.category_label')}
                   </label>
                   <div className="select-wrapper">
                     <select
@@ -225,11 +227,11 @@ export default function AddBillPage() {
                       onChange={e => setCategory(e.target.value)}
                       className="select-field"
                     >
-                      <option value="general">General / Other</option>
-                      <option value="rent">House Rent</option>
-                      <option value="electricity">Electricity</option>
-                      <option value="water">Water</option>
-                      <option value="wifi">Wi-Fi / Internet</option>
+                      <option value="general">{t('bills.cat_general')}</option>
+                      <option value="rent">{t('bills.cat_rent')}</option>
+                      <option value="electricity">{t('bills.cat_electricity')}</option>
+                      <option value="water">{t('bills.cat_water')}</option>
+                      <option value="wifi">{t('bills.cat_wifi')}</option>
                     </select>
                   </div>
                 </div>
@@ -240,10 +242,10 @@ export default function AddBillPage() {
           {/* Split Details Section */}
           <div className="card" style={{ padding: 'var(--space-xl)' }}>
             <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-sm)' }}>
-              Split Details
+              {t('bills.split_details')}
             </h2>
             <p className="text-body-md text-secondary" style={{ marginBottom: 'var(--space-md)' }}>
-              Automatically split equally among all {memberCount} active housemate{memberCount !== 1 ? 's' : ''}.
+              {memberCount === 1 ? t('bills.split_desc_one', { count: memberCount }) : t('bills.split_desc_other', { count: memberCount })}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
@@ -274,11 +276,11 @@ export default function AddBillPage() {
           {/* Buttons */}
           <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
             <Link href="/house" className="btn-secondary" style={{ flex: 1, textDecoration: 'none' }}>
-              Cancel
+              {t('bills.cancel')}
             </Link>
             <button type="submit" disabled={loading} className="btn-primary" style={{ flex: 2 }}>
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>save</span>
-              {loading ? 'Creating Bill...' : 'Create Bill'}
+              {loading ? t('bills.creating_bill') : t('bills.create_bill_btn')}
             </button>
           </div>
         </form>
@@ -301,7 +303,7 @@ export default function AddBillPage() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 className="text-headline-md" style={{ color: '#ffffff' }}>
-                Bill Preview
+                {t('bills.bill_preview')}
               </h3>
               <div
                 style={{
@@ -320,7 +322,7 @@ export default function AddBillPage() {
 
             <div style={{ textAlign: 'center' }}>
               <span style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.8 }}>
-                Total Amount
+                {t('bills.total_amount_label')}
               </span>
               <div className="text-display-financial" style={{ color: '#ffffff', margin: '4px 0' }}>
                 {formatCents(totalCents, house.currency)}
@@ -338,7 +340,7 @@ export default function AddBillPage() {
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 14 }}>sync</span>
-                {frequency === 'quarterly' ? 'Every 3 months' : frequency === 'monthly' ? 'Monthly' : frequency}
+                {t(`frequency.${frequency}`) || frequency}
               </div>
             </div>
 
@@ -355,14 +357,14 @@ export default function AddBillPage() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ opacity: 0.9, fontSize: 14 }}>Split amongst</span>
-                <span className="font-semibold">{memberCount} people</span>
+                <span style={{ opacity: 0.9, fontSize: 14 }}>{t('bills.split_amongst')}</span>
+                <span className="font-semibold">{t('common.members') ? `${memberCount} ${t('common.members')}` : `${memberCount} people`}</span>
               </div>
 
               <div className="divider" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }} />
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ opacity: 0.9, fontSize: 14 }}>Share / person</span>
+                <span style={{ opacity: 0.9, fontSize: 14 }}>{t('bills.share_per_person')}</span>
                 <span className="text-headline-lg font-bold" style={{ color: '#ffffff' }}>
                   {formatCents(shareCents, house.currency)}
                 </span>
@@ -384,7 +386,7 @@ export default function AddBillPage() {
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>savings</span>
-                <span>Save {formatCents(monthlySavingCents, house.currency)}/month towards this bill</span>
+                <span>{t('bills.save_monthly', { amount: formatCents(monthlySavingCents, house.currency) })}</span>
               </div>
             )}
           </div>

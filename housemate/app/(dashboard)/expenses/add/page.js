@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { addExpense } from '@/lib/expenses';
 import { getUserHouse } from '@/lib/houses';
 import { parseToCents, CATEGORY_ICONS, EXPENSE_CATEGORIES } from '@/lib/money';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * Add Personal Expense Page — live multi-user data
@@ -13,6 +14,7 @@ import { parseToCents, CATEGORY_ICONS, EXPENSE_CATEGORIES } from '@/lib/money';
  */
 export default function AddExpensePage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [house, setHouse] = useState(null);
   const [title, setTitle] = useState('');
@@ -36,7 +38,7 @@ export default function AddExpensePage() {
     const cents = parseToCents(amount);
 
     if (cents <= 0) {
-      setError('Please enter a valid expense amount.');
+      setError(t('bills.error_amount'));
       return;
     }
 
@@ -68,7 +70,7 @@ export default function AddExpensePage() {
         <Link href="/expenses" className="btn-icon" style={{ textDecoration: 'none' }}>
           <span className="material-symbols-outlined">arrow_back</span>
         </Link>
-        <h1 className="text-headline-lg text-on-surface">New Expense</h1>
+        <h1 className="text-headline-lg text-on-surface">{t('expenses.add_title')}</h1>
       </div>
 
       <div className="card" style={{ padding: 'var(--space-xl)' }}>
@@ -92,7 +94,7 @@ export default function AddExpensePage() {
             }}
           >
             <span className="text-label-sm text-secondary uppercase tracking-wider" style={{ marginBottom: 4 }}>
-              Enter Amount
+              {t('expenses.amount_label')}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', color: 'var(--color-primary)' }}>
               <span className="text-display-financial" style={{ marginRight: 4 }}>
@@ -125,12 +127,12 @@ export default function AddExpensePage() {
           {/* Title input */}
           <div>
             <label htmlFor="title" className="input-label">
-              Description / Place (Optional)
+              {t('expenses.expense_title_label')}
             </label>
             <input
               id="title"
               type="text"
-              placeholder="e.g. Lunch at Cafe, Supermarket, Grab ride"
+              placeholder={t('expenses.expense_title_placeholder')}
               value={title}
               onChange={e => setTitle(e.target.value)}
               className="input-field"
@@ -140,7 +142,7 @@ export default function AddExpensePage() {
           {/* Category Grid */}
           <div>
             <label className="input-label" style={{ marginBottom: 'var(--space-sm)' }}>
-              Category
+              {t('expenses.category_label')}
             </label>
             <div
               style={{
@@ -151,6 +153,7 @@ export default function AddExpensePage() {
             >
               {EXPENSE_CATEGORIES.map(cat => {
                 const isSelected = category === cat;
+                const translatedCat = t(`expense_categories.${cat}`) || cat;
                 return (
                   <button
                     key={cat}
@@ -172,7 +175,7 @@ export default function AddExpensePage() {
                   >
                     <span style={{ fontSize: 24, marginBottom: 4 }}>{CATEGORY_ICONS[cat]}</span>
                     <span className="text-label-sm" style={{ fontWeight: isSelected ? 700 : 500 }}>
-                      {cat}
+                      {translatedCat}
                     </span>
                   </button>
                 );
@@ -183,7 +186,7 @@ export default function AddExpensePage() {
           {/* Date Picker */}
           <div>
             <label htmlFor="date" className="input-label">
-              Date
+              {t('expenses.date_label')}
             </label>
             <input
               id="date"
@@ -198,12 +201,12 @@ export default function AddExpensePage() {
           {/* Note Input */}
           <div>
             <label htmlFor="note" className="input-label">
-              Note (Optional)
+              {t('expenses.note_label')}
             </label>
             <textarea
               id="note"
               rows={2}
-              placeholder="Add any extra notes..."
+              placeholder={t('expenses.note_placeholder')}
               value={note}
               onChange={e => setNote(e.target.value)}
               className="input-field"
@@ -214,11 +217,11 @@ export default function AddExpensePage() {
           {/* Actions */}
           <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-sm)' }}>
             <Link href="/expenses" className="btn-secondary" style={{ flex: 1, textDecoration: 'none' }}>
-              Cancel
+              {t('common.cancel')}
             </Link>
             <button type="submit" disabled={loading} className="btn-primary" style={{ flex: 2 }}>
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>check</span>
-              {loading ? 'Saving...' : 'Save Expense'}
+              {loading ? t('expenses.saving') : t('expenses.save_btn')}
             </button>
           </div>
         </form>

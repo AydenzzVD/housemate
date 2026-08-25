@@ -11,12 +11,14 @@ import { getMyBudget } from '@/lib/budgets';
 import { formatCents, BILL_ICONS, CATEGORY_ICONS, currentMonthYear } from '@/lib/money';
 import EmptyState from '@/components/EmptyState';
 import { createBrowserClient } from '@supabase/ssr';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * Main Dashboard — live multi-user data
  * Matches Stitch design: dashboard_housemate_1 & dashboard_housemate_2
  */
 export default function DashboardPage() {
+  const { t, lang } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [house, setHouse] = useState(null);
   const [members, setMembers] = useState([]);
@@ -70,7 +72,7 @@ export default function DashboardPage() {
     if (error) {
       setToast(`❌ ${error}`);
     } else {
-      setToast(newStatus === 'paid' ? '✓ Marked as Paid!' : '↩ Marked as Unpaid');
+      setToast(newStatus === 'paid' ? `✓ ${t('dashboard.marked_paid_btn')}` : `↩ ${t('status.waiting')}`);
       // Refresh cycles
       if (house) {
         const updated = await getCurrentCyclePayments(house.id);
@@ -95,9 +97,9 @@ export default function DashboardPage() {
 
   const greeting = (() => {
     const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (h < 12) return t('greeting.morning');
+    if (h < 17) return t('greeting.afternoon');
+    return t('greeting.evening');
   })();
 
   // Flatten all bill_payments to find my payments
@@ -130,7 +132,7 @@ export default function DashboardPage() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
 
-  const monthName = new Date().toLocaleString('en-US', { month: 'long' });
+  const monthName = new Date().toLocaleString(lang === 'km' ? 'km-KH' : 'en-US', { month: 'long' });
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
@@ -141,11 +143,11 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div>
           <h1 className="text-headline-lg-mobile text-on-surface" style={{ fontSize: 28, marginBottom: 4 }}>
-            {greeting}, {profile?.full_name?.split(' ')[0] || 'there'} 👋
+            {greeting}, {profile?.full_name?.split(' ')[0] || ''} 👋
           </h1>
           <p className="text-body-md text-secondary" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--color-primary)' }}>home</span>
-            {house?.name ?? 'No house'} {members.length > 0 && `(${members.length} member${members.length !== 1 ? 's' : ''})`}
+            {house?.name ?? t('common.no_house')} {members.length > 0 && (members.length === 1 ? t('dashboard.member_count', { count: members.length }) : t('dashboard.members_count', { count: members.length }))}
           </p>
         </div>
 
@@ -189,17 +191,17 @@ export default function DashboardPage() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 2 }}>
             <div>
-              <h2 className="text-headline-md text-on-surface">Your House Payment</h2>
-              <p className="text-body-md text-secondary">{monthName} cycle</p>
+              <h2 className="text-headline-md text-on-surface">{t('dashboard.house_payment')}</h2>
+              <p className="text-body-md text-secondary">{t('dashboard.cycle', { month: monthName })}</p>
             </div>
             {allMyPayments.length > 0 ? (
               allPaid ? (
                 <span className="badge badge-paid">
-                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check</span>Paid
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check</span>{t('status.paid')}
                 </span>
               ) : (
                 <span className="badge badge-overdue">
-                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>warning</span>Due
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>warning</span>{t('status.due')}
                 </span>
               )
             ) : null}
@@ -207,15 +209,15 @@ export default function DashboardPage() {
 
           <div style={{ margin: 'var(--space-lg) 0', position: 'relative', zIndex: 2 }}>
             <p className="text-body-md text-secondary" style={{ marginBottom: 4 }}>
-              {allMyPayments.length > 1 ? 'Total across all bills' : 'Your share'}
+              {allMyPayments.length > 1 ? t('dashboard.total_across_bills') : t('dashboard.your_share')}
             </p>
             <div className="text-display-financial text-on-surface">
               {formatCents(myTotalOwedCents, house?.currency)}
             </div>
             {allMyPayments.length === 0 && (
               <p className="text-body-md text-secondary" style={{ marginTop: 8 }}>
-                No active bill cycles yet.{' '}
-                {house?.myRole === 'admin' && <Link href="/bills/add" className="text-primary">Add a bill →</Link>}
+                {t('dashboard.no_cycles')}{' '}
+                {house?.myRole === 'admin' && <Link href="/bills/add" className="text-primary">{t('dashboard.add_bill_cta')}</Link>}
               </p>
             )}
           </div>
@@ -232,25 +234,25 @@ export default function DashboardPage() {
                 <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
                   {p.status === 'paid' ? 'check_circle' : 'payments'}
                 </span>
-                {allMyPayments.length > 1 ? (p.status === 'paid' ? 'All Paid' : 'Mark Paid') : (p.status === 'paid' ? 'Marked as Paid' : 'Pay Now')}
+                {allMyPayments.length > 1 ? (p.status === 'paid' ? t('dashboard.all_paid_btn') : t('dashboard.mark_paid_btn')) : (p.status === 'paid' ? t('dashboard.marked_paid_btn') : t('dashboard.pay_now_btn'))}
               </button>
             ))}
             <Link href="/payments" className="btn-secondary" style={{ flex: 1, minWidth: 140, textDecoration: 'none' }}>
-              View Details
+              {t('dashboard.view_details')}
             </Link>
           </div>
         </div>
 
         {/* House Status Card (4 cols) */}
         <div className="card col-span-4" style={{ display: 'flex', flexDirection: 'column', padding: 'var(--space-xl)' }}>
-          <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-md)' }}>House Status</h2>
+          <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-md)' }}>{t('dashboard.house_status')}</h2>
 
           {firstGroup ? (
             <>
               <div style={{ marginBottom: 'var(--space-md)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 'var(--space-xs)' }}>
-                  <span className="text-headline-md text-on-surface">{housePaidCount}/{allHousePayments.length} paid</span>
-                  <span className="text-body-md text-secondary">Total: {formatCents(houseTotal, house?.currency)}</span>
+                  <span className="text-headline-md text-on-surface">{t('dashboard.paid_count', { paid: housePaidCount, total: allHousePayments.length })}</span>
+                  <span className="text-body-md text-secondary">{t('common.total')}: {formatCents(houseTotal, house?.currency)}</span>
                 </div>
                 <div className="progress-bar-track">
                   <div className="progress-bar-fill" style={{ width: `${housePaidPct}%` }} />
@@ -269,29 +271,29 @@ export default function DashboardPage() {
                           {name[0].toUpperCase()}
                         </div>
                         <span className="text-body-md text-on-surface">
-                          {name}{isMe && ' (You)'}
+                          {name}{isMe && ` ${t('common.you')}`}
                         </span>
                       </div>
-                      <span className={`badge ${paid ? 'badge-paid' : 'badge-overdue'}`}>{paid ? 'Paid' : 'Waiting'}</span>
+                      <span className={`badge ${paid ? 'badge-paid' : 'badge-overdue'}`}>{paid ? t('status.paid') : t('status.waiting')}</span>
                     </div>
                   );
                 })}
               </div>
             </>
           ) : (
-            <EmptyState icon="🏠" title="No bill cycles yet" description={house?.myRole === 'admin' ? 'Add a shared bill to get started.' : 'Your admin has not created any bills yet.'} />
+            <EmptyState icon="🏠" title={t('dashboard.no_cycles')} description={house?.myRole === 'admin' ? t('dashboard.no_house_cycles_admin') : t('dashboard.no_house_cycles_member')} />
           )}
         </div>
 
         {/* Upcoming Bills (6 cols) */}
         <div className="card col-span-6" style={{ padding: 'var(--space-xl)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
-            <h2 className="text-headline-md text-on-surface">Upcoming Payments</h2>
-            <Link href="/upcoming" className="text-label-md text-primary">View all</Link>
+            <h2 className="text-headline-md text-on-surface">{t('dashboard.upcoming_payments')}</h2>
+            <Link href="/upcoming" className="text-label-md text-primary">{t('dashboard.view_all')}</Link>
           </div>
 
           {cycleGroups.length === 0 ? (
-            <EmptyState icon="📅" title="No upcoming bills" description="Add shared bills to see upcoming payment schedules." actionLabel={house?.myRole === 'admin' ? 'Add Bill' : null} actionHref="/bills/add" />
+            <EmptyState icon="📅" title={t('dashboard.no_upcoming')} description={t('dashboard.no_upcoming_desc')} actionLabel={house?.myRole === 'admin' ? t('dashboard.add_bill') : null} actionHref="/bills/add" />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
               {cycleGroups.slice(0, 3).map(g => {
@@ -306,7 +308,7 @@ export default function DashboardPage() {
                       <div>
                         <h3 className="text-headline-md" style={{ fontSize: 16 }}>{g.bill?.name}</h3>
                         <p className="text-body-md text-secondary" style={{ fontSize: 14 }}>
-                          Due {new Date(g.cycle.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {t('payments.due_date', { date: new Date(g.cycle.due_date).toLocaleDateString(lang === 'km' ? 'km-KH' : 'en-US', { month: 'short', day: 'numeric' }) })}
                         </p>
                       </div>
                     </div>
@@ -315,7 +317,7 @@ export default function DashboardPage() {
                         {formatCents(myPay?.share_amount_cents ?? 0, house?.currency)}
                       </div>
                       <span className={`badge ${myPay?.status === 'paid' ? 'badge-paid' : 'badge-upcoming'}`} style={{ marginTop: 4 }}>
-                        {myPay?.status === 'paid' ? 'Paid' : 'Due'}
+                        {myPay?.status === 'paid' ? t('status.paid') : t('status.due')}
                       </span>
                     </div>
                   </div>
@@ -329,32 +331,33 @@ export default function DashboardPage() {
         <div className="card col-span-6" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 'var(--space-xl)' }}>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-xs)' }}>
-              <h2 className="text-headline-md text-on-surface">My Spending</h2>
-              <Link href="/spending" className="text-label-md text-primary">View spending</Link>
+              <h2 className="text-headline-md text-on-surface">{t('dashboard.my_spending')}</h2>
+              <Link href="/spending" className="text-label-md text-primary">{t('dashboard.view_spending')}</Link>
             </div>
             <p className="text-body-md text-secondary" style={{ marginBottom: 4 }}>{monthName}</p>
             <div className="text-headline-lg text-on-surface" style={{ marginBottom: 'var(--space-lg)' }}>
               {formatCents(totalSpentCents, house?.currency)}{' '}
-              <span className="text-body-md text-secondary" style={{ fontWeight: 400 }}>spent</span>
+              <span className="text-body-md text-secondary" style={{ fontWeight: 400 }}>{t('dashboard.spent')}</span>
               {budget && (
                 <span className="text-body-md text-secondary" style={{ fontWeight: 400, marginLeft: 8 }}>
-                  of {formatCents(budget.budget_cents, house?.currency)} budget
+                  {t('dashboard.of_budget', { budget: formatCents(budget.budget_cents, house?.currency) })}
                 </span>
               )}
             </div>
           </div>
 
           {expenses.length === 0 ? (
-            <EmptyState icon="💸" title="No expenses yet" description="Start tracking your personal spending." actionLabel="Add Expense" actionHref="/expenses/add" />
+            <EmptyState icon="💸" title={t('dashboard.no_expenses')} description={t('dashboard.no_expenses_desc')} actionLabel={t('dashboard.add_expense')} actionHref="/expenses/add" />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
               {topCategories.map(([cat, cents], i) => {
                 const pct = totalSpentCents > 0 ? Math.round((cents / totalSpentCents) * 100) : 0;
                 const colors = ['var(--color-primary)', 'var(--color-tertiary-container)', 'var(--color-secondary)'];
+                const translatedCategory = t(`expense_categories.${cat}`) || cat;
                 return (
                   <div key={cat}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4 }}>
-                      <span className="text-secondary">{CATEGORY_ICONS[cat] || '💡'} {cat}</span>
+                      <span className="text-secondary">{CATEGORY_ICONS[cat] || '💡'} {translatedCategory}</span>
                       <span className="font-semibold text-on-surface">{formatCents(cents, house?.currency)}</span>
                     </div>
                     <div className="progress-bar-track" style={{ height: 6 }}>

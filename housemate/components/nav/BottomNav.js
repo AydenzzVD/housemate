@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * Mobile Bottom Navigation Bar
@@ -17,13 +18,14 @@ import { usePathname } from 'next/navigation';
  */
 export default function BottomNav() {
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   const items = [
-    { label: 'Home',     href: '/dashboard', icon: 'home' },
-    { label: 'House',    href: '/house',     icon: 'group' },
-    { label: 'Expenses', href: '/expenses',  icon: 'receipt_long' },
-    { label: 'Payments', href: '/payments',  icon: 'account_balance_wallet' },
-    { label: 'Profile',  href: '/settings',  icon: 'person' },
+    { key: 'home',     href: '/dashboard', icon: 'home' },
+    { key: 'house',    href: '/house',     icon: 'group' },
+    { key: 'expenses', href: '/expenses',  icon: 'receipt_long' },
+    { key: 'payments', href: '/payments',  icon: 'account_balance_wallet' },
+    { key: 'profile',  href: '/settings',  icon: 'person' },
   ];
 
   return (
@@ -42,7 +44,7 @@ export default function BottomNav() {
             >
               {item.icon}
             </span>
-            <span>{item.label}</span>
+            <span>{t(`navigation.${item.key}`)}</span>
           </Link>
         );
       })}

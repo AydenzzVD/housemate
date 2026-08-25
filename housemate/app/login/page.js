@@ -4,23 +4,18 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useLanguage } from '@/lib/lang/useLanguage';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 /**
  * Login Page
  *
  * Matches Stitch design: login_housemate/screen.png
- *
- * - Centered card layout on light background
- * - HouseMate icon + "Welcome back" header
- * - Email + password inputs with Material Symbol icons
- * - "Remember me" checkbox + "Forgot password?" link
- * - Login button (primary, full width)
- * - Link to Register
- * - Friendly error messages
  */
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,11 +35,11 @@ export default function LoginPage() {
 
       if (authError) {
         if (authError.message.includes('Invalid login credentials')) {
-          setError('Incorrect email or password. Please try again.');
+          setError(t('auth.error_wrong_credentials'));
         } else if (authError.message.includes('Email not confirmed')) {
-          setError('Please confirm your email address before logging in.');
+          setError(t('auth.error_email_unconfirmed'));
         } else {
-          setError(authError.message || 'Something went wrong. Please try again.');
+          setError(authError.message || t('auth.error_generic'));
         }
         setLoading(false);
       } else {
@@ -53,13 +48,18 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('Unable to connect. Please check your internet connection and try again.');
+      setError(t('auth.error_network'));
       setLoading(false);
     }
   }
 
   return (
-    <div className="auth-page">
+    <div className="auth-page" style={{ position: 'relative' }}>
+      {/* Top right language switcher */}
+      <div style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', zIndex: 10 }}>
+        <LanguageSwitcher />
+      </div>
+
       <main className="auth-card fade-in" style={{ maxWidth: 448 }}>
         {/* Header */}
         <div className="auth-header">
@@ -73,10 +73,10 @@ export default function LoginPage() {
               className="text-headline-lg-mobile text-on-surface"
               style={{ marginBottom: 4 }}
             >
-              Welcome back
+              {t('auth.welcome_back')}
             </h1>
             <p className="text-body-md text-secondary">
-              Log in to manage your shared expenses and harmony.
+              {t('auth.login_subtitle')}
             </p>
           </div>
         </div>
@@ -94,7 +94,7 @@ export default function LoginPage() {
           {/* Email */}
           <div className="auth-form-group">
             <label htmlFor="email" className="input-label">
-              Email address
+              {t('auth.email')}
             </label>
             <div style={{ position: 'relative' }}>
               <span
@@ -116,7 +116,7 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 required
-                placeholder="you@example.com"
+                placeholder={t('auth.email_placeholder')}
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="input-field"
@@ -128,7 +128,7 @@ export default function LoginPage() {
           {/* Password */}
           <div className="auth-form-group">
             <label htmlFor="password" className="input-label">
-              Password
+              {t('auth.password')}
             </label>
             <div style={{ position: 'relative' }}>
               <span
@@ -185,7 +185,7 @@ export default function LoginPage() {
                   accentColor: 'var(--color-primary)',
                 }}
               />
-              <span className="text-label-md text-secondary">Remember me</span>
+              <span className="text-label-md text-secondary">{t('auth.remember_me')}</span>
             </label>
             <a
               href="#"
@@ -194,7 +194,7 @@ export default function LoginPage() {
               onMouseOver={e => (e.target.style.opacity = 0.75)}
               onMouseOut={e => (e.target.style.opacity = 1)}
             >
-              Forgot password?
+              {t('auth.forgot_password')}
             </a>
           </div>
 
@@ -214,10 +214,10 @@ export default function LoginPage() {
                 <span className="material-symbols-outlined" style={{ fontSize: 20, animation: 'spin 1s linear infinite' }}>
                   progress_activity
                 </span>
-                Logging in...
+                {t('auth.logging_in')}
               </>
             ) : (
-              'Login'
+              t('auth.login_btn')
             )}
           </button>
 
@@ -226,9 +226,9 @@ export default function LoginPage() {
             className="text-body-md text-secondary text-center"
             style={{ marginTop: 'var(--space-sm)' }}
           >
-            Don&apos;t have an account?{' '}
+            {t('auth.no_account')}{' '}
             <Link href="/register" className="text-label-md text-primary">
-              Register
+              {t('auth.register_link')}
             </Link>
           </p>
         </form>

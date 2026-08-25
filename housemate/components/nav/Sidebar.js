@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLanguage } from '@/lib/lang/useLanguage';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 /**
  * Desktop Sidebar Navigation
@@ -14,19 +16,20 @@ import { createClient } from '@/lib/supabase/client';
  * - Primary Action: "Add Expense" button
  * - Nav Tabs: Dashboard, House, Expenses, Payments, Settings
  * - Active state: 4px primary left border, primary/10 background, filled icon
- * - Footer: Profile & Logout
+ * - Footer: Language Switcher, Profile & Logout
  */
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useLanguage();
 
   const navItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
-    { label: 'House',     href: '/house',     icon: 'home_work' },
-    { label: 'Expenses',  href: '/expenses',  icon: 'receipt_long' },
-    { label: 'Payments',  href: '/payments',  icon: 'payments' },
-    { label: 'Settings',  href: '/settings',  icon: 'settings' },
+    { key: 'dashboard', href: '/dashboard', icon: 'dashboard' },
+    { key: 'house',     href: '/house',     icon: 'home_work' },
+    { key: 'expenses',  href: '/expenses',  icon: 'receipt_long' },
+    { key: 'payments',  href: '/payments',  icon: 'payments' },
+    { key: 'settings',  href: '/settings',  icon: 'settings' },
   ];
 
   async function handleLogout() {
@@ -41,9 +44,9 @@ export default function Sidebar() {
       <div className="sidebar-brand">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginBottom: 'var(--space-xs)' }}>
           <div className="sidebar-brand-logo">HM</div>
-          <h1>HouseMate</h1>
+          <h1>{t('common.app_name')}</h1>
         </div>
-        <p>Shared Living Harmony</p>
+        <p>{t('common.app_tagline')}</p>
       </div>
 
       {/* Primary CTA */}
@@ -54,7 +57,7 @@ export default function Sidebar() {
           style={{ width: '100%', textDecoration: 'none' }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
-          Add Expense
+          {t('navigation.add_expense')}
         </Link>
       </div>
 
@@ -74,14 +77,17 @@ export default function Sidebar() {
               >
                 {item.icon}
               </span>
-              <span>{item.label}</span>
+              <span>{t(`navigation.${item.key}`)}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Footer Nav */}
-      <div className="sidebar-footer">
+      <div className="sidebar-footer" style={{ gap: 'var(--space-xs)' }}>
+        <div style={{ padding: '0 var(--space-md) var(--space-xs)', display: 'flex', justifyContent: 'center' }}>
+          <LanguageSwitcher />
+        </div>
         <Link
           href="/settings"
           className={`sidebar-nav-item ${pathname === '/settings' ? 'active' : ''}`}
@@ -89,7 +95,7 @@ export default function Sidebar() {
           <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
             account_circle
           </span>
-          <span>Profile</span>
+          <span>{t('navigation.profile')}</span>
         </Link>
         <button
           type="button"
@@ -100,7 +106,7 @@ export default function Sidebar() {
           <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
             logout
           </span>
-          <span>Logout</span>
+          <span>{t('navigation.logout')}</span>
         </button>
       </div>
     </aside>

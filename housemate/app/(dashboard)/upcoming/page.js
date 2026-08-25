@@ -5,12 +5,14 @@ import { getUserHouse, getHouseMembers } from '@/lib/houses';
 import { getUpcomingBillCycles } from '@/lib/payments';
 import { formatCents, BILL_ICONS } from '@/lib/money';
 import EmptyState from '@/components/EmptyState';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * Upcoming Payments Schedule Page — live multi-user data
  * Matches Stitch design: upcoming_payments_housemate/screen.png
  */
 export default function UpcomingPaymentsPage() {
+  const { t, lang } = useLanguage();
   const [house, setHouse] = useState(null);
   const [members, setMembers] = useState([]);
   const [upcomingList, setUpcomingList] = useState([]);
@@ -59,10 +61,10 @@ export default function UpcomingPaymentsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div>
           <h1 className="text-headline-lg text-on-surface" style={{ marginBottom: 4 }}>
-            Upcoming Payments
+            {t('dashboard.upcoming_payments')}
           </h1>
           <p className="text-body-md text-secondary">
-            Never forget a recurring shared bill deadline.
+            {t('dashboard.no_upcoming_desc')}
           </p>
         </div>
 
@@ -79,7 +81,7 @@ export default function UpcomingPaymentsPage() {
               boxShadow: filter === 'all' ? 'var(--shadow-level-1)' : 'none',
             }}
           >
-            All
+            {t('common.all')}
           </button>
           <button
             type="button"
@@ -92,7 +94,7 @@ export default function UpcomingPaymentsPage() {
               boxShadow: filter === 'monthly' ? 'var(--shadow-level-1)' : 'none',
             }}
           >
-            Monthly
+            {t('frequency.monthly')}
           </button>
           <button
             type="button"
@@ -105,7 +107,7 @@ export default function UpcomingPaymentsPage() {
               boxShadow: filter === 'quarterly' ? 'var(--shadow-level-1)' : 'none',
             }}
           >
-            Quarterly
+            {t('frequency.quarterly')}
           </button>
         </div>
       </div>
@@ -114,8 +116,8 @@ export default function UpcomingPaymentsPage() {
         <div className="card" style={{ padding: 'var(--space-xl)' }}>
           <EmptyState
             icon="📅"
-            title="No upcoming payments scheduled"
-            description="Active bill cycles will appear here as their due dates approach."
+            title={t('dashboard.no_upcoming')}
+            description={t('dashboard.no_upcoming_desc')}
           />
         </div>
       ) : (
@@ -131,7 +133,7 @@ export default function UpcomingPaymentsPage() {
             const daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
 
             const isUrgent = daysLeft <= 3;
-            const dueLabel = daysLeft === 0 ? 'Due Today' : daysLeft < 0 ? 'Overdue' : `Due in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+            const dueLabel = daysLeft === 0 ? t('status.due') : daysLeft < 0 ? t('status.overdue') : t('common.days_remaining', { days: daysLeft });
 
             return (
               <div
@@ -167,7 +169,7 @@ export default function UpcomingPaymentsPage() {
                       {bill?.name}
                     </h3>
                     <p className="text-body-md text-secondary" style={{ fontSize: 14 }}>
-                      {due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {dueLabel}
+                      {due.toLocaleDateString(lang === 'km' ? 'km-KH' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {dueLabel}
                     </p>
                     {bill?.frequency === 'quarterly' && (
                       <span
@@ -179,7 +181,7 @@ export default function UpcomingPaymentsPage() {
                           marginTop: 2,
                         }}
                       >
-                        💡 Quarterly Bill — Wi-Fi Saving Tracked
+                        💡 {t('house.wifi_saving')}
                       </span>
                     )}
                   </div>
@@ -188,10 +190,10 @@ export default function UpcomingPaymentsPage() {
                 <div style={{ textAlign: 'right' }}>
                   <div className="text-headline-md text-on-surface" style={{ fontSize: 20 }}>
                     {formatCents(share, house.currency)}
-                    <span className="text-body-md text-secondary" style={{ fontSize: 14, fontWeight: 400 }}> /person</span>
+                    <span className="text-body-md text-secondary" style={{ fontSize: 14, fontWeight: 400 }}> {t('common.per_person')}</span>
                   </div>
                   <span className="text-label-sm text-secondary" style={{ display: 'block', marginTop: 2 }}>
-                    Total: {formatCents(item.total_amount_cents, house.currency)}
+                    {t('common.total')}: {formatCents(item.total_amount_cents, house.currency)}
                   </span>
                 </div>
               </div>

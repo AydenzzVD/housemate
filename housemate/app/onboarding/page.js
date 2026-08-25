@@ -1,28 +1,35 @@
 'use client';
 
 import Link from 'next/link';
+import { useLanguage } from '@/lib/lang/useLanguage';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 /**
  * Onboarding / Choice Screen
  *
  * Matches Stitch design: get_started_housemate/screen.png
- *
- * Bento grid layout with two cards:
- * 1. "Create a House" — You're the organizer. Set up a new house and invite roommates.
- * 2. "Join a House" — Your roommate already set things up? Enter your house code here.
  */
 export default function OnboardingPage() {
+  const { t } = useLanguage();
+
   return (
     <div
       style={{
         minHeight: '100vh',
         backgroundColor: 'var(--color-background)',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 'var(--space-md)',
+        position: 'relative',
       }}
     >
+      {/* Top right language switcher */}
+      <div style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', zIndex: 10 }}>
+        <LanguageSwitcher />
+      </div>
+
       <main
         style={{
           width: '100%',
@@ -40,10 +47,10 @@ export default function OnboardingPage() {
             className="text-headline-lg-mobile text-primary"
             style={{ fontSize: 30, marginBottom: 'var(--space-xs)' }}
           >
-            Welcome to HouseMate
+            {t('onboarding.welcome_title')}
           </h1>
           <p className="text-body-lg text-secondary">
-            Manage your shared house expenses with your roommates. Choose how you want to get started.
+            {t('onboarding.welcome_subtitle')}
           </p>
         </div>
 
@@ -94,14 +101,14 @@ export default function OnboardingPage() {
               className="text-headline-md text-on-surface"
               style={{ marginBottom: 'var(--space-xs)' }}
             >
-              Create a House
+              {t('onboarding.create_card_title')}
             </h2>
 
             <p
               className="text-body-md text-secondary"
               style={{ marginBottom: 'var(--space-xl)', flexGrow: 1 }}
             >
-              You&apos;re the organizer. Set up a new house and invite your roommates to join.
+              {t('onboarding.create_card_desc')}
             </p>
 
             <div
@@ -114,7 +121,7 @@ export default function OnboardingPage() {
                 fontSize: 'var(--text-label-md-size)',
               }}
             >
-              <span>Start Setting Up</span>
+              <span>{t('onboarding.create_card_cta')}</span>
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
                 arrow_forward
               </span>
@@ -158,14 +165,14 @@ export default function OnboardingPage() {
               className="text-headline-md text-on-surface"
               style={{ marginBottom: 'var(--space-xs)' }}
             >
-              Join a House
+              {t('onboarding.join_card_title')}
             </h2>
 
             <p
               className="text-body-md text-secondary"
               style={{ marginBottom: 'var(--space-xl)', flexGrow: 1 }}
             >
-              Your roommate already set things up? Enter your house code here.
+              {t('onboarding.join_card_desc')}
             </p>
 
             <div
@@ -178,7 +185,7 @@ export default function OnboardingPage() {
                 fontSize: 'var(--text-label-md-size)',
               }}
             >
-              <span>Enter House Code</span>
+              <span>{t('onboarding.join_card_cta')}</span>
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
                 arrow_forward
               </span>

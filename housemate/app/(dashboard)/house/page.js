@@ -6,12 +6,14 @@ import { getUserHouse, getHouseMembers } from '@/lib/houses';
 import { getHouseBills } from '@/lib/bills';
 import { formatCents, BILL_ICONS } from '@/lib/money';
 import EmptyState from '@/components/EmptyState';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * House Overview Page — live multi-user data
  * Matches Stitch design: house_housemate/screen.png
  */
 export default function HousePage() {
+  const { t } = useLanguage();
   const [house, setHouse] = useState(null);
   const [members, setMembers] = useState([]);
   const [bills, setBills] = useState([]);
@@ -71,23 +73,23 @@ export default function HousePage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div>
           <h1 className="text-headline-lg text-on-surface" style={{ marginBottom: 4 }}>
-            {house.name} ({memberCount} member{memberCount !== 1 ? 's' : ''})
+            {house.name} ({memberCount === 1 ? t('settings.member_count_one', { count: memberCount }) : t('settings.member_count_other', { count: memberCount })})
           </h1>
           <p className="text-body-md text-secondary">
-            Manage your shared living expenses &amp; bills
+            {t('house.manage_subtitle')}
           </p>
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
           <Link href="/house/members" className="btn-secondary" style={{ textDecoration: 'none' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>group</span>
-            Members ({memberCount})
+            {t('house.members_btn', { count: memberCount })}
           </Link>
 
           {isAdmin && (
             <Link href="/bills/add" className="btn-primary" style={{ textDecoration: 'none' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
-              Add Bill
+              {t('house.add_bill')}
             </Link>
           )}
         </div>
@@ -98,9 +100,9 @@ export default function HousePage() {
         {/* Left Column: Shared Bills List (8 cols) */}
         <div className="col-span-8" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 className="text-headline-md text-on-surface">Shared Household Bills</h2>
+            <h2 className="text-headline-md text-on-surface">{t('house.shared_bills')}</h2>
             <span className="text-label-sm text-secondary uppercase tracking-wider">
-              {bills.length} Active Bill{bills.length !== 1 ? 's' : ''}
+              {bills.length === 1 ? t('house.active_bills_one', { count: bills.length }) : t('house.active_bills_other', { count: bills.length })}
             </span>
           </div>
 
@@ -108,9 +110,9 @@ export default function HousePage() {
             <div className="card" style={{ padding: 'var(--space-xl)' }}>
               <EmptyState
                 icon="📄"
-                title="No shared bills created"
-                description={isAdmin ? "Create your first bill to split expenses with roommates." : "Your house admin hasn't created any shared bills yet."}
-                actionLabel={isAdmin ? "Add First Bill" : null}
+                title={t('house.no_bills')}
+                description={isAdmin ? t('house.no_bills_admin') : t('house.no_bills_member')}
+                actionLabel={isAdmin ? t('house.add_first_bill') : null}
                 actionHref="/bills/add"
               />
             </div>
@@ -126,6 +128,7 @@ export default function HousePage() {
                 const perPerson = Math.round(bill.total_amount_cents / memberCount);
                 const icon = BILL_ICONS[bill.category] || 'receipt_long';
                 const isWifi = bill.category === 'wifi' || bill.name.toLowerCase().includes('wi-fi') || bill.frequency === 'quarterly';
+                const translatedFreq = t(`frequency.${bill.frequency}`) || bill.frequency;
 
                 return (
                   <Link
@@ -161,7 +164,7 @@ export default function HousePage() {
                       </div>
 
                       <span className={`badge ${bill.frequency === 'quarterly' ? 'badge-upcoming' : 'badge-paid'}`}>
-                        {bill.frequency === 'quarterly' ? 'Quarterly' : bill.frequency === 'monthly' ? 'Monthly' : bill.frequency}
+                        {translatedFreq}
                       </span>
                     </div>
 
@@ -170,11 +173,11 @@ export default function HousePage() {
                         <span className="text-display-financial text-on-surface" style={{ fontSize: 32 }}>
                           {formatCents(bill.total_amount_cents, house.currency)}
                         </span>
-                        <span className="text-body-md text-secondary">Total</span>
+                        <span className="text-body-md text-secondary">{t('house.total_label')}</span>
                       </div>
 
                       <p className="text-label-md text-primary" style={{ marginTop: 4, fontWeight: 600 }}>
-                        {formatCents(perPerson, house.currency)} / person
+                        {formatCents(perPerson, house.currency)} {t('house.per_person')}
                       </p>
                     </div>
 
@@ -189,12 +192,12 @@ export default function HousePage() {
                       }}
                     >
                       <span className="text-label-sm text-secondary">
-                        Due: Day {bill.due_day_of_month} of month
+                        {t('house.due_day', { day: bill.due_day_of_month })}
                       </span>
 
                       {isWifi && (
                         <span className="text-label-sm text-secondary" style={{ color: 'var(--color-tertiary)' }}>
-                          Wi-Fi Saving
+                          {t('house.wifi_saving')}
                         </span>
                       )}
                     </div>
@@ -210,10 +213,10 @@ export default function HousePage() {
           {/* Join Code Widget */}
           <div className="card" style={{ padding: 'var(--space-xl)', textAlign: 'center' }}>
             <span className="text-label-sm text-secondary uppercase tracking-wider mb-xs">
-              Invite Roommates
+              {t('house.invite_roommates')}
             </span>
             <h3 className="text-headline-md text-on-surface" style={{ margin: '4px 0 var(--space-md)' }}>
-              House Join Code
+              {t('house.join_code_label')}
             </h3>
 
             <div
@@ -242,35 +245,35 @@ export default function HousePage() {
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
                 {copied ? 'check' : 'content_copy'}
               </span>
-              {copied ? 'Copied to Clipboard!' : 'Copy House Code'}
+              {copied ? t('house.copied_code') : t('house.copy_house_code')}
             </button>
           </div>
 
           {/* Monthly Commitment Summary */}
           <div className="card" style={{ padding: 'var(--space-xl)' }}>
             <h3 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-md)' }}>
-              Monthly Summary
+              {t('house.monthly_summary')}
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="text-body-md text-secondary">Total Shared Bills</span>
+                <span className="text-body-md text-secondary">{t('house.total_shared_bills')}</span>
                 <span className="text-headline-md text-on-surface">
                   {formatCents(totalBillsCents, house.currency)}
                 </span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="text-body-md text-secondary">Active Members</span>
-                <span className="text-headline-md text-on-surface">{memberCount} {memberCount === 1 ? 'person' : 'people'}</span>
+                <span className="text-body-md text-secondary">{t('house.active_members')}</span>
+                <span className="text-headline-md text-on-surface">{memberCount === 1 ? t('house.person', { count: memberCount }) : t('house.people', { count: memberCount })}</span>
               </div>
 
               <div className="divider" style={{ margin: 'var(--space-xs) 0' }} />
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="text-body-md text-primary font-semibold">Equal Share</span>
+                <span className="text-body-md text-primary font-semibold">{t('house.equal_share')}</span>
                 <span className="text-headline-lg text-primary font-bold">
-                  {formatCents(perPersonCents, house.currency)}/mo
+                  {formatCents(perPersonCents, house.currency)}{t('common.per_month')}
                 </span>
               </div>
             </div>

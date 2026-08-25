@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createHouse } from '@/lib/houses';
+import { useLanguage } from '@/lib/lang/useLanguage';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 /**
  * Create House Page
@@ -15,6 +17,7 @@ import { createHouse } from '@/lib/houses';
  */
 export default function CreateHousePage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [houseName, setHouseName] = useState('');
   const [currency, setCurrency] = useState('$');
@@ -26,7 +29,7 @@ export default function CreateHousePage() {
   async function handleCreate(e) {
     e.preventDefault();
     if (!houseName.trim()) {
-      setError('Please enter a house name.');
+      setError(t('onboarding.error_house_name_empty'));
       return;
     }
 
@@ -36,7 +39,7 @@ export default function CreateHousePage() {
     const { data, error: createError } = await createHouse(houseName, currency);
 
     if (createError) {
-      setError(createError || 'Failed to create house. Please try again.');
+      setError(createError || t('errors.create_house'));
       setLoading(false);
       return;
     }
@@ -90,8 +93,8 @@ export default function CreateHousePage() {
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </Link>
-        <h1 className="text-headline-md text-on-surface">Create House</h1>
-        <div style={{ width: 40 }} />
+        <h1 className="text-headline-md text-on-surface">{t('onboarding.create_card_title')}</h1>
+        <LanguageSwitcher />
       </header>
 
       {/* Main Content */}
@@ -137,10 +140,10 @@ export default function CreateHousePage() {
                   </span>
                 </div>
                 <h2 className="text-headline-lg-mobile text-on-surface" style={{ marginBottom: 4 }}>
-                  Set up your shared home
+                  {t('onboarding.setup_title')}
                 </h2>
                 <p className="text-body-md text-secondary">
-                  Give your house a name to start collaborating.
+                  {t('onboarding.setup_subtitle')}
                 </p>
               </div>
 
@@ -153,13 +156,13 @@ export default function CreateHousePage() {
 
               <div>
                 <label htmlFor="house-name" className="input-label">
-                  House Name
+                  {t('onboarding.house_name')}
                 </label>
                 <input
                   id="house-name"
                   type="text"
                   required
-                  placeholder="e.g., The Blue Door, Our House"
+                  placeholder={t('onboarding.house_name_placeholder')}
                   value={houseName}
                   onChange={e => setHouseName(e.target.value)}
                   className="input-field"
@@ -169,7 +172,7 @@ export default function CreateHousePage() {
 
               <div>
                 <label htmlFor="currency" className="input-label">
-                  Currency Symbol
+                  {t('onboarding.currency_symbol')}
                 </label>
                 <div className="select-wrapper">
                   <select
@@ -192,7 +195,7 @@ export default function CreateHousePage() {
                 className="btn-primary"
                 style={{ width: '100%', marginTop: 'var(--space-sm)' }}
               >
-                {loading ? 'Creating House...' : 'Create House'}
+                {loading ? t('onboarding.creating_house') : t('onboarding.create_house_btn')}
               </button>
             </form>
           ) : (
@@ -217,10 +220,10 @@ export default function CreateHousePage() {
 
               <div>
                 <h2 className="text-headline-lg-mobile text-on-surface" style={{ marginBottom: 4 }}>
-                  House Created!
+                  {t('onboarding.house_created_title')}
                 </h2>
                 <p className="text-body-md text-secondary" style={{ maxWidth: 300 }}>
-                  Share this code with your roommates so they can join <strong>{createdHouse.name}</strong>.
+                  {t('onboarding.house_created_subtitle')} <strong>{createdHouse.name}</strong>.
                 </p>
               </div>
 
@@ -239,7 +242,7 @@ export default function CreateHousePage() {
                 }}
               >
                 <span className="text-label-sm text-secondary uppercase tracking-wider">
-                  House Code
+                  {t('onboarding.house_code_label')}
                 </span>
                 <span
                   className="text-display-financial text-primary"
@@ -260,7 +263,7 @@ export default function CreateHousePage() {
                   <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
                     {copied ? 'check' : 'content_copy'}
                   </span>
-                  {copied ? 'Copied to Clipboard!' : 'Copy Code'}
+                  {copied ? t('onboarding.copied_code') : t('onboarding.copy_code')}
                 </button>
 
                 <button
@@ -269,7 +272,7 @@ export default function CreateHousePage() {
                   className="btn-secondary"
                   style={{ width: '100%' }}
                 >
-                  Go to Dashboard
+                  {t('onboarding.go_dashboard')}
                 </button>
               </div>
             </div>

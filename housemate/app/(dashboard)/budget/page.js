@@ -6,12 +6,14 @@ import { getMyBudget, upsertBudget } from '@/lib/budgets';
 import { getMyExpenses } from '@/lib/expenses';
 import { getUserHouse } from '@/lib/houses';
 import { formatCents, parseToCents, daysRemainingInMonth, currentMonthYear } from '@/lib/money';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * Personal Budget Page — live multi-user data (strictly private)
  * Matches Stitch design: budget_housemate/screen.png
  */
 export default function BudgetPage() {
+  const { t, lang } = useLanguage();
   const [house, setHouse] = useState(null);
   const [budget, setBudget] = useState(null);
   const [expenses, setExpenses] = useState([]);
@@ -69,14 +71,14 @@ export default function BudgetPage() {
       setToast(`❌ ${error}`);
     } else {
       setEditing(false);
-      setToast('✓ Monthly budget target saved!');
+      setToast(t('budget.toast_saved'));
       const updated = await getMyBudget(monthYear);
       setBudget(updated);
     }
     setTimeout(() => setToast(''), 3000);
   }
 
-  const monthName = new Date().toLocaleString('en-US', { month: 'long' });
+  const monthName = new Date().toLocaleString(lang === 'km' ? 'km-KH' : 'en-US', { month: 'long' });
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)', maxWidth: 880, margin: '0 auto' }}>
@@ -90,10 +92,10 @@ export default function BudgetPage() {
             <Link href="/expenses" className="btn-icon" style={{ width: 32, height: 32, textDecoration: 'none' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
             </Link>
-            <h1 className="text-headline-lg text-on-surface">Monthly Budget ({monthName})</h1>
+            <h1 className="text-headline-lg text-on-surface">{t('budget.page_title', { month: monthName })}</h1>
           </div>
           <p className="text-body-md text-secondary">
-            Keep your shared living and personal lifestyle in balance.
+            {t('budget.page_subtitle')}
           </p>
         </div>
 
@@ -103,7 +105,7 @@ export default function BudgetPage() {
           className="btn-secondary"
         >
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
-          {editing ? 'Cancel' : budgetCents > 0 ? 'Edit Budget Target' : 'Set Budget Target'}
+          {editing ? t('budget.cancel_btn') : budgetCents > 0 ? t('budget.edit_btn') : t('budget.set_btn')}
         </button>
       </div>
 
@@ -113,7 +115,7 @@ export default function BudgetPage() {
           <form onSubmit={handleSaveBudget} style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 220 }}>
               <label htmlFor="budget-input" className="input-label">
-                Set Monthly Budget ({house?.currency || '$'})
+                {t('budget.input_label', { currency: house?.currency || '$' })}
               </label>
               <input
                 id="budget-input"
@@ -128,7 +130,7 @@ export default function BudgetPage() {
               />
             </div>
             <button type="submit" className="btn-primary">
-              Save Budget
+              {t('budget.save_btn')}
             </button>
           </form>
         </div>
@@ -142,29 +144,29 @@ export default function BudgetPage() {
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-xs)' }}>
-              <span className="text-label-md text-secondary">{monthName} Budget Status</span>
+              <span className="text-label-md text-secondary">{t('budget.budget_status', { month: monthName })}</span>
               <span className={`badge ${percentUsed > 90 ? 'badge-overdue' : 'badge-paid'}`}>
-                {budgetCents === 0 ? 'No Target Set' : percentUsed > 90 ? 'Near Limit' : 'Healthy'}
+                {budgetCents === 0 ? t('status.no_target') : percentUsed > 90 ? t('status.near_limit') : t('status.healthy')}
               </span>
             </div>
 
             <div className="text-display-financial text-on-surface" style={{ margin: 'var(--space-xs) 0 var(--space-lg)' }}>
               {budgetCents > 0 ? formatCents(remainingCents, house?.currency) : formatCents(totalSpentCents, house?.currency)}{' '}
               <span className="text-body-md text-secondary" style={{ fontWeight: 400 }}>
-                {budgetCents > 0 ? 'remaining' : 'spent'}
+                {budgetCents > 0 ? t('budget.remaining') : t('budget.spent')}
               </span>
             </div>
 
             <div style={{ display: 'flex', gap: 'var(--space-xl)', flexWrap: 'wrap' }}>
               <div>
-                <span className="text-label-sm text-secondary uppercase tracking-wider">Total Target</span>
+                <span className="text-label-sm text-secondary uppercase tracking-wider">{t('budget.total_target')}</span>
                 <p className="text-headline-md text-on-surface font-semibold">
-                  {budgetCents > 0 ? formatCents(budgetCents, house?.currency) : 'Not set'}
+                  {budgetCents > 0 ? formatCents(budgetCents, house?.currency) : t('common.not_set')}
                 </p>
               </div>
 
               <div>
-                <span className="text-label-sm text-secondary uppercase tracking-wider">Total Spent</span>
+                <span className="text-label-sm text-secondary uppercase tracking-wider">{t('budget.total_spent')}</span>
                 <p className="text-headline-md text-secondary">
                   {formatCents(totalSpentCents, house?.currency)}
                 </p>
@@ -175,8 +177,8 @@ export default function BudgetPage() {
           {budgetCents > 0 && (
             <div style={{ marginTop: 'var(--space-lg)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                <span className="text-secondary">{percentUsed}% used</span>
-                <span className="text-primary font-semibold">{100 - percentUsed}% remaining</span>
+                <span className="text-secondary">{t('budget.percent_used', { pct: percentUsed })}</span>
+                <span className="text-primary font-semibold">{t('budget.percent_remaining', { pct: 100 - percentUsed })}</span>
               </div>
               <div className="progress-bar-track" style={{ height: 8 }}>
                 <div
@@ -221,10 +223,10 @@ export default function BudgetPage() {
             </div>
 
             <h3 className="text-headline-md" style={{ marginBottom: 4 }}>
-              Daily Safe Allowance
+              {t('budget.daily_allowance')}
             </h3>
             <p className="text-body-md" style={{ fontSize: 14, opacity: 0.85 }}>
-              Based on {daysLeft} days remaining in {monthName}.
+              {t('budget.daily_desc', { days: daysLeft, month: monthName })}
             </p>
           </div>
 
@@ -233,7 +235,7 @@ export default function BudgetPage() {
               {budgetCents > 0 ? formatCents(dailyAllowanceCents, house?.currency) : '$0.00'}
             </div>
             <span className="text-label-sm" style={{ opacity: 0.8 }}>
-              {budgetCents > 0 ? 'per day to stay on budget' : 'Set budget target first'}
+              {budgetCents > 0 ? t('budget.per_day') : t('budget.set_first')}
             </span>
           </div>
         </div>

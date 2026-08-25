@@ -7,12 +7,14 @@ import { getCurrentCyclePayments, toggleMyPayment } from '@/lib/payments';
 import { formatCents } from '@/lib/money';
 import EmptyState from '@/components/EmptyState';
 import { createBrowserClient } from '@supabase/ssr';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * Payment Status Matrix Page — live multi-user data
  * Matches Stitch design: payment_status_housemate/screen.png
  */
 export default function PaymentsPage() {
+  const { t, lang } = useLanguage();
   const [house, setHouse] = useState(null);
   const [cycleGroups, setCycleGroups] = useState([]);
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -72,14 +74,14 @@ export default function PaymentsPage() {
     for (const p of myPayments) {
       await toggleMyPayment(p.id, newStatus);
     }
-    setToast(newStatus === 'paid' ? '✓ All your shares marked as Paid!' : '↩ Shares marked as Unpaid');
+    setToast(newStatus === 'paid' ? t('payments.toast_paid') : t('payments.toast_unpaid'));
     // Refresh
     const updated = await getCurrentCyclePayments(house.id);
     setCycleGroups(updated);
     setTimeout(() => setToast(''), 3000);
   }
 
-  const monthName = new Date().toLocaleString('en-US', { month: 'long' });
+  const monthName = new Date().toLocaleString(lang === 'km' ? 'km-KH' : 'en-US', { month: 'long' });
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
@@ -90,10 +92,10 @@ export default function PaymentsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div>
           <h1 className="text-headline-lg text-on-surface" style={{ marginBottom: 4 }}>
-            {monthName} Payment Matrix
+            {t('payments.matrix_title', { month: monthName })}
           </h1>
           <p className="text-body-md text-secondary">
-            Total commitment &amp; status for all open house bills
+            {t('payments.matrix_subtitle')}
           </p>
         </div>
 
@@ -107,13 +109,13 @@ export default function PaymentsPage() {
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
                 {isAllMyPaid ? 'check_circle' : 'hourglass_empty'}
               </span>
-              {isAllMyPaid ? 'Mark as Waiting' : 'Mark My Share as Paid'}
+              {isAllMyPaid ? t('payments.mark_waiting') : t('payments.mark_my_paid')}
             </button>
           )}
 
           <Link href="/payment-message" className="btn-primary" style={{ textDecoration: 'none' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>chat</span>
-            Generate Payment Message
+            {t('payments.generate_message')}
           </Link>
         </div>
       </div>
@@ -122,9 +124,9 @@ export default function PaymentsPage() {
         <div className="card" style={{ padding: 'var(--space-xl)' }}>
           <EmptyState
             icon="💳"
-            title="No active bill cycles"
-            description="Active bill cycles will appear here when bills are generated."
-            actionLabel={house.myRole === 'admin' ? "Add Bill" : null}
+            title={t('payments.no_cycles')}
+            description={t('payments.no_cycles_desc')}
+            actionLabel={house.myRole === 'admin' ? t('payments.add_bill') : null}
             actionHref="/bills/add"
           />
         </div>
@@ -160,7 +162,7 @@ export default function PaymentsPage() {
                 <span className="material-symbols-outlined filled">attach_money</span>
               </div>
               <p className="text-label-md text-secondary" style={{ marginBottom: 4 }}>
-                Total House Commitment
+                {t('payments.total_commitment')}
               </p>
               <h2 className="text-display-financial text-on-surface">
                 {formatCents(totalCents, house.currency)}
@@ -171,9 +173,9 @@ export default function PaymentsPage() {
             <div className="card" style={{ padding: 'var(--space-xl)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 'var(--space-md)' }}>
                 <div>
-                  <p className="text-label-md text-secondary">Payment Progress</p>
+                  <p className="text-label-md text-secondary">{t('payments.payment_progress')}</p>
                   <p className="text-headline-md text-on-surface" style={{ marginTop: 2 }}>
-                    {paidCount} / {totalCount} Paid
+                    {t('payments.paid_fraction', { paid: paidCount, total: totalCount })}
                   </p>
                 </div>
 
@@ -195,7 +197,7 @@ export default function PaymentsPage() {
                     <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--color-success)' }}>
                       check_circle
                     </span>
-                    Collected
+                    {t('payments.collected')}
                   </span>
                   <span className="font-semibold text-on-surface">
                     {formatCents(collectedCents, house.currency)}
@@ -209,7 +211,7 @@ export default function PaymentsPage() {
                     <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--color-warning)' }}>
                       pending
                     </span>
-                    Remaining
+                    {t('payments.remaining')}
                   </span>
                   <span className="font-semibold text-on-surface">
                     {formatCents(remainingCents, house.currency)}
@@ -223,7 +225,7 @@ export default function PaymentsPage() {
           <div className="col-span-8">
             <div className="card" style={{ padding: 'var(--space-xl)', minHeight: '100%' }}>
               <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-lg)' }}>
-                Member Shares Breakdown
+                {t('payments.member_breakdown')}
               </h2>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
@@ -232,7 +234,7 @@ export default function PaymentsPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
                       <h3 className="text-headline-md" style={{ fontSize: 16 }}>{group.bill?.name}</h3>
                       <span className="text-label-sm text-secondary">
-                        Due: {new Date(group.cycle.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {t('payments.due_date', { date: new Date(group.cycle.due_date).toLocaleDateString(lang === 'km' ? 'km-KH' : 'en-US', { month: 'short', day: 'numeric' }) })}
                       </span>
                     </div>
 
@@ -267,10 +269,10 @@ export default function PaymentsPage() {
 
                             <div>
                               <p className="text-headline-md" style={{ fontSize: 16 }}>
-                                {name} {isMe && '(You)'}
+                                {name} {isMe && t('common.you')}
                               </p>
                               <p className="text-label-sm text-secondary">
-                                Share of {group.bill?.name}
+                                {t('payments.share_of', { bill: group.bill?.name })}
                               </p>
                             </div>
                           </div>
@@ -284,7 +286,7 @@ export default function PaymentsPage() {
                               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
                                 {pPaid ? 'check' : 'hourglass_empty'}
                               </span>
-                              {pPaid ? 'Paid' : 'Waiting'}
+                              {pPaid ? t('status.paid') : t('status.waiting')}
                             </span>
                           </div>
                         </div>

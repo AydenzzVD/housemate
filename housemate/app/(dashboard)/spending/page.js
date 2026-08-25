@@ -6,12 +6,14 @@ import { getMyExpenses } from '@/lib/expenses';
 import { getUserHouse } from '@/lib/houses';
 import { formatCents, CATEGORY_ICONS, currentMonthYear } from '@/lib/money';
 import EmptyState from '@/components/EmptyState';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * Monthly Spending Analysis Page — live multi-user data (strictly private)
  * Matches Stitch design: monthly_spending_housemate/screen.png
  */
 export default function MonthlySpendingPage() {
+  const { t, lang } = useLanguage();
   const [house, setHouse] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,7 @@ export default function MonthlySpendingPage() {
   });
 
   const categoryEntries = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
-  const monthName = new Date().toLocaleString('en-US', { month: 'long' });
+  const monthName = new Date().toLocaleString(lang === 'km' ? 'km-KH' : 'en-US', { month: 'long' });
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)', maxWidth: 1000, margin: '0 auto' }}>
@@ -61,7 +63,7 @@ export default function MonthlySpendingPage() {
             <Link href="/expenses" className="btn-icon" style={{ width: 32, height: 32, textDecoration: 'none' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
             </Link>
-            <h1 className="text-headline-md text-on-surface">{monthName} Spending Analysis</h1>
+            <h1 className="text-headline-md text-on-surface">{t('spending.page_title', { month: monthName })}</h1>
           </div>
           <div className="text-display-financial text-primary">
             {formatCents(totalCents, house?.currency)}
@@ -71,11 +73,11 @@ export default function MonthlySpendingPage() {
         <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
           <Link href="/budget" className="btn-secondary" style={{ textDecoration: 'none' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>account_balance_wallet</span>
-            Budget Settings
+            {t('spending.budget_btn')}
           </Link>
           <Link href="/expenses/add" className="btn-primary" style={{ textDecoration: 'none' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
-            Add Expense
+            {t('spending.add_expense_btn')}
           </Link>
         </div>
       </div>
@@ -84,9 +86,9 @@ export default function MonthlySpendingPage() {
         <div className="card" style={{ padding: 'var(--space-xl)' }}>
           <EmptyState
             icon="📊"
-            title="No expenses to analyze"
-            description="Start logging personal purchases to see your category breakdown."
-            actionLabel="Add Expense"
+            title={t('spending.no_expenses')}
+            description={t('spending.no_expenses_desc')}
+            actionLabel={t('spending.add_expense_btn')}
             actionHref="/expenses/add"
           />
         </div>
@@ -96,7 +98,7 @@ export default function MonthlySpendingPage() {
           {/* Category Breakdown (8 cols) */}
           <div className="card col-span-8" style={{ padding: 'var(--space-xl)' }}>
             <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-lg)' }}>
-              Where did my money go?
+              {t('spending.where_money_go')}
             </h2>
 
             <div
@@ -125,7 +127,7 @@ export default function MonthlySpendingPage() {
                   margin: '0 auto',
                 }}
               >
-                <span className="text-label-sm text-secondary uppercase tracking-wider">Total</span>
+                <span className="text-label-sm text-secondary uppercase tracking-wider">{t('spending.total_label')}</span>
                 <span className="text-headline-md text-on-surface font-bold">
                   {formatCents(totalCents, house?.currency)}
                 </span>
@@ -136,12 +138,13 @@ export default function MonthlySpendingPage() {
                 {categoryEntries.map(([cat, amountCents]) => {
                   const pct = totalCents > 0 ? Math.round((amountCents / totalCents) * 100) : 0;
                   const icon = CATEGORY_ICONS[cat] || '💡';
+                  const translatedCat = t(`expense_categories.${cat}`) || cat;
 
                   return (
                     <div key={cat}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                         <span className="text-body-md text-on-surface font-medium" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span>{icon}</span> {cat}
+                          <span>{icon}</span> {translatedCat}
                         </span>
                         <span className="text-label-md font-semibold text-on-surface">
                           {formatCents(amountCents, house?.currency)}{' '}
@@ -163,32 +166,32 @@ export default function MonthlySpendingPage() {
           <div className="card col-span-4" style={{ padding: 'var(--space-xl)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-lg)' }}>
-                Spending Insights
+                {t('spending.insights_title')}
               </h2>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
                 <div>
-                  <span className="text-label-sm text-secondary uppercase tracking-wider">Top Category</span>
+                  <span className="text-label-sm text-secondary uppercase tracking-wider">{t('spending.top_category')}</span>
                   <div className="text-headline-md text-primary font-bold" style={{ marginTop: 2 }}>
-                    {categoryEntries[0] ? `${CATEGORY_ICONS[categoryEntries[0][0]]} ${categoryEntries[0][0]}` : 'N/A'}
+                    {categoryEntries[0] ? `${CATEGORY_ICONS[categoryEntries[0][0]]} ${t(`expense_categories.${categoryEntries[0][0]}`) || categoryEntries[0][0]}` : 'N/A'}
                   </div>
                 </div>
 
                 <div className="divider" />
 
                 <div>
-                  <span className="text-label-sm text-secondary uppercase tracking-wider">Total Transactions</span>
+                  <span className="text-label-sm text-secondary uppercase tracking-wider">{t('spending.total_transactions')}</span>
                   <div className="text-headline-md text-on-surface font-semibold" style={{ marginTop: 2 }}>
-                    {expenses.length} logged
+                    {t('spending.transactions_logged', { count: expenses.length })}
                   </div>
                 </div>
 
                 <div className="divider" />
 
                 <div>
-                  <span className="text-label-sm text-secondary uppercase tracking-wider">Daily Average</span>
+                  <span className="text-label-sm text-secondary uppercase tracking-wider">{t('spending.daily_average')}</span>
                   <div className="text-headline-md text-on-surface font-semibold" style={{ marginTop: 2 }}>
-                    {formatCents(Math.round(totalCents / new Date().getDate()), house?.currency)} / day
+                    {formatCents(Math.round(totalCents / new Date().getDate()), house?.currency)} {t('spending.per_day')}
                   </div>
                 </div>
               </div>

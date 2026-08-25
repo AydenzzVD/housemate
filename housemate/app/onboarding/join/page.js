@@ -4,20 +4,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { joinHouse } from '@/lib/houses';
+import { useLanguage } from '@/lib/lang/useLanguage';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 /**
  * Join House Page
  *
  * Matches Stitch design: join_house_housemate/screen.png
- *
- * - Clean modal/card layout
- * - Key icon + "Join a House" header
- * - 6-character uppercase code input
- * - Validation & join_house_by_code RPC call
- * - Redirect to Dashboard
  */
 export default function JoinHousePage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +26,7 @@ export default function JoinHousePage() {
     const cleanCode = code.trim().toUpperCase();
 
     if (cleanCode.length !== 6) {
-      setError('Please enter a valid 6-character house code.');
+      setError(t('onboarding.error_code_length'));
       return;
     }
 
@@ -40,11 +37,11 @@ export default function JoinHousePage() {
 
     if (joinError) {
       if (joinError.includes('not found')) {
-        setError('House code not found. Please check with your house admin.');
+        setError(t('onboarding.error_code_not_found'));
       } else if (joinError.includes('already a member')) {
-        setError('You are already a member of this house.');
+        setError(t('onboarding.error_already_member'));
       } else {
-        setError(joinError || 'Could not join house. Please check the code.');
+        setError(joinError || t('onboarding.error_join_generic'));
       }
       setLoading(false);
       return;
@@ -57,7 +54,7 @@ export default function JoinHousePage() {
       body: JSON.stringify({ action: 'set' }),
     });
 
-    setSuccess(`Successfully joined ${data.name}!`);
+    setSuccess(t('onboarding.join_success', { name: data.name }));
     setLoading(false);
     setTimeout(() => {
       router.push('/dashboard');
@@ -95,8 +92,8 @@ export default function JoinHousePage() {
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </Link>
-        <h1 className="text-headline-md text-on-surface">Join House</h1>
-        <div style={{ width: 40 }} />
+        <h1 className="text-headline-md text-on-surface">{t('onboarding.join_header')}</h1>
+        <LanguageSwitcher />
       </header>
 
       {/* Main Content */}
@@ -139,10 +136,10 @@ export default function JoinHousePage() {
               </span>
             </div>
             <h2 className="text-headline-lg-mobile text-on-surface" style={{ marginBottom: 4 }}>
-              Join a House
+              {t('onboarding.join_title')}
             </h2>
             <p className="text-body-md text-secondary">
-              Ask your house admin for the 6-character house code.
+              {t('onboarding.join_subtitle')}
             </p>
           </div>
 
@@ -176,7 +173,7 @@ export default function JoinHousePage() {
           <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
             <div>
               <label htmlFor="house-code" className="input-label">
-                House Code
+                {t('onboarding.house_code')}
               </label>
               <div style={{ position: 'relative' }}>
                 <span
@@ -220,7 +217,7 @@ export default function JoinHousePage() {
               className="btn-primary"
               style={{ width: '100%', marginTop: 'var(--space-xs)' }}
             >
-              {loading ? 'Joining House...' : 'Join House'}
+              {loading ? t('onboarding.joining') : t('onboarding.join_btn')}
             </button>
           </form>
         </div>

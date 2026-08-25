@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { getUserHouse, getHouseMembers } from '@/lib/houses';
 import { getHouseBills } from '@/lib/bills';
 import { formatCents } from '@/lib/money';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * Group Chat Payment Message Generator Page — live multi-user data
  * Matches Stitch design: payment_message_housemate/screen.png
  */
 export default function PaymentMessagePage() {
+  const { t, lang } = useLanguage();
   const [house, setHouse] = useState(null);
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState('');
@@ -32,20 +34,25 @@ export default function PaymentMessagePage() {
         const totalCents = billsData.reduce((sum, b) => sum + b.total_amount_cents, 0);
         const perPersonCents = Math.round(totalCents / memberCount);
 
-        const monthName = new Date().toLocaleString('en-US', { month: 'long' });
+        const monthName = new Date().toLocaleString(lang === 'km' ? 'km-KH' : 'en-US', { month: 'long' });
 
         const billLines = billsData.length > 0
           ? billsData.map(b => `${b.name}: ${formatCents(b.total_amount_cents, hData.currency)}`).join('\n')
-          : 'No active bills';
+          : t('payment_message.no_bills');
 
-        const generated = `${monthName} House Payment 🏠\n\n${billLines}\n\nTotal: ${formatCents(totalCents, hData.currency)}\n\n${memberCount} people → ${formatCents(perPersonCents, hData.currency)}/person\n\nPlease pay when you can 🙏`;
+        const header = t('payment_message.template_header', { month: monthName });
+        const totalStr = t('payment_message.template_total', { total: formatCents(totalCents, hData.currency) });
+        const perPersonStr = t('payment_message.template_per_person', { count: memberCount, amount: formatCents(perPersonCents, hData.currency) });
+        const footer = t('payment_message.template_footer');
+
+        const generated = `${header}\n\n${billLines}\n\n${totalStr}\n\n${perPersonStr}\n\n${footer}`;
 
         setMessage(generated);
       }
       setLoading(false);
     }
     loadData();
-  }, []);
+  }, [lang, t]);
 
   if (loading) {
     return (
@@ -73,10 +80,10 @@ export default function PaymentMessagePage() {
         </Link>
         <div>
           <h1 className="text-headline-lg text-on-surface" style={{ marginBottom: 2 }}>
-            Payment Message Ready
+            {t('payment_message.page_title')}
           </h1>
           <p className="text-body-md text-secondary">
-            Review and copy the breakdown to send to your group chat.
+            {t('payment_message.page_subtitle')}
           </p>
         </div>
       </div>
@@ -98,7 +105,7 @@ export default function PaymentMessagePage() {
           >
             <span className="material-symbols-outlined filled">chat_bubble</span>
           </div>
-          <h2 className="text-headline-md text-on-surface">Message Preview</h2>
+          <h2 className="text-headline-md text-on-surface">{t('payment_message.preview_title')}</h2>
         </div>
 
         {/* Message Bubble */}
@@ -109,7 +116,7 @@ export default function PaymentMessagePage() {
             onChange={e => setMessage(e.target.value)}
             className="input-field"
             style={{
-              fontFamily: 'monospace',
+              fontFamily: 'inherit',
               fontSize: 15,
               lineHeight: 1.6,
               marginBottom: 'var(--space-lg)',
@@ -147,7 +154,7 @@ export default function PaymentMessagePage() {
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
               {copied ? 'check' : 'content_copy'}
             </span>
-            {copied ? 'Copied to Clipboard!' : 'Copy Message'}
+            {copied ? t('payment_message.copied_btn') : t('payment_message.copy_btn')}
           </button>
 
           <button
@@ -159,7 +166,7 @@ export default function PaymentMessagePage() {
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
               {isEditing ? 'check' : 'edit'}
             </span>
-            {isEditing ? 'Done' : 'Edit Text'}
+            {isEditing ? t('payment_message.done_btn') : t('payment_message.edit_btn')}
           </button>
         </div>
       </div>

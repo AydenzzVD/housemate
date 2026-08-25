@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getProfile, updateProfile, signOut } from '@/lib/auth';
 import { getUserHouse, getHouseMembers } from '@/lib/houses';
+import { useLanguage } from '@/lib/lang/useLanguage';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 /**
  * Settings & Profile Page — live multi-user data
@@ -11,6 +13,7 @@ import { getUserHouse, getHouseMembers } from '@/lib/houses';
  */
 export default function SettingsPage() {
   const router = useRouter();
+  const { t, lang, setLang } = useLanguage();
 
   const [profile, setProfile] = useState(null);
   const [house, setHouse] = useState(null);
@@ -73,7 +76,7 @@ export default function SettingsPage() {
       setToast(`❌ ${error}`);
     } else {
       setIsEditingName(false);
-      setToast('✓ Profile name updated successfully!');
+      setToast(t('settings.toast_name_updated'));
       const updated = await getProfile();
       setProfile(updated);
     }
@@ -104,10 +107,10 @@ export default function SettingsPage() {
       {/* Header */}
       <div>
         <h1 className="text-headline-lg text-on-surface" style={{ marginBottom: 4 }}>
-          Account &amp; House Settings
+          {t('settings.title')}
         </h1>
         <p className="text-body-md text-secondary">
-          Manage your personal profile and household configuration.
+          {t('settings.subtitle')}
         </p>
       </div>
 
@@ -141,10 +144,10 @@ export default function SettingsPage() {
                   autoFocus
                 />
                 <button type="submit" disabled={saving} className="btn-primary" style={{ padding: '8px 16px' }}>
-                  Save
+                  {t('settings.save_name')}
                 </button>
                 <button type="button" onClick={() => setIsEditingName(false)} className="btn-secondary" style={{ padding: '8px 16px' }}>
-                  Cancel
+                  {t('settings.cancel_name')}
                 </button>
               </form>
             ) : (
@@ -155,15 +158,50 @@ export default function SettingsPage() {
                   onClick={() => setIsEditingName(true)}
                   className="btn-ghost"
                   style={{ padding: 4 }}
-                  title="Edit Name"
+                  title={t('settings.edit_name_title')}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
                 </button>
                 <span className={`badge ${house?.myRole === 'admin' ? 'badge-admin' : 'badge-member'}`}>
-                  {house?.myRole === 'admin' ? 'House Admin' : 'Member'}
+                  {house?.myRole === 'admin' ? t('roles.house_admin') : t('roles.member')}
                 </span>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Language Preference Card */}
+      <div className="card" style={{ padding: 'var(--space-xl)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+          <div>
+            <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 4 }}>
+              {t('settings.language_title')}
+            </h2>
+            <p className="text-body-md text-secondary">
+              {t('settings.language_subtitle')}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+            <button
+              type="button"
+              onClick={() => setLang('en')}
+              className={`btn-${lang === 'en' ? 'primary' : 'secondary'}`}
+              style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <span>🇬🇧</span>
+              <span>{t('settings.language_en')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setLang('km')}
+              className={`btn-${lang === 'km' ? 'primary' : 'secondary'}`}
+              style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'Noto Serif Khmer', sans-serif" }}
+            >
+              <span>🇰🇭</span>
+              <span>{t('settings.language_km')}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -172,27 +210,27 @@ export default function SettingsPage() {
       {house && (
         <div className="card" style={{ padding: 'var(--space-xl)' }}>
           <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-md)' }}>
-            Household Information
+            {t('settings.household_info')}
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--color-surface-container)' }}>
-              <span className="text-body-md text-secondary">House Name</span>
+              <span className="text-body-md text-secondary">{t('settings.house_name_label')}</span>
               <span className="text-body-md font-semibold text-on-surface">{house.name}</span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--color-surface-container)' }}>
-              <span className="text-body-md text-secondary">Currency</span>
+              <span className="text-body-md text-secondary">{t('settings.currency_label')}</span>
               <span className="text-body-md font-semibold text-on-surface">{house.currency}</span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--color-surface-container)' }}>
-              <span className="text-body-md text-secondary">Active Members</span>
-              <span className="text-body-md font-semibold text-on-surface">{members.length} member{members.length !== 1 ? 's' : ''}</span>
+              <span className="text-body-md text-secondary">{t('settings.active_members')}</span>
+              <span className="text-body-md font-semibold text-on-surface">{members.length === 1 ? t('settings.member_count_one', { count: members.length }) : t('settings.member_count_other', { count: members.length })}</span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-              <span className="text-body-md text-secondary">House Join Code</span>
+              <span className="text-body-md text-secondary">{t('settings.join_code_label')}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
                 <span className="text-headline-md text-primary font-bold" style={{ letterSpacing: '0.1em' }}>
                   {house.join_code}
@@ -206,7 +244,7 @@ export default function SettingsPage() {
                   <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
                     {copied ? 'check' : 'content_copy'}
                   </span>
-                  {copied ? 'Copied' : 'Copy'}
+                  {copied ? t('settings.copied') : t('settings.copy')}
                 </button>
               </div>
             </div>
@@ -217,10 +255,10 @@ export default function SettingsPage() {
       {/* Session Management Card */}
       <div className="card" style={{ padding: 'var(--space-xl)' }}>
         <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-xs)' }}>
-          Session Management
+          {t('settings.session_title')}
         </h2>
         <p className="text-body-md text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
-          Signing out will end your current active session on this device.
+          {t('settings.session_desc')}
         </p>
 
         <button
@@ -233,7 +271,7 @@ export default function SettingsPage() {
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>logout</span>
-          Sign Out of HouseMate
+          {t('settings.sign_out')}
         </button>
       </div>
     </div>

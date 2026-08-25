@@ -3,8 +3,8 @@
    Based on Google Stitch "Harmonious Living" Design Export
    ============================================================ */
 
-/* Google Fonts: Inter + Material Symbols */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+/* Google Fonts: Inter + Noto Serif Khmer + Material Symbols */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Noto+Serif+Khmer:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
 
 /* ============================================================
@@ -82,7 +82,7 @@
   --shadow-level-3: 0px 20px 25px -5px rgba(0,0,0,0.1), 0px 10px 10px -5px rgba(0,0,0,0.04);
 
   /* --- Typography Scale --- */
-  --font-family:         'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family:         'Inter', 'Noto Serif Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   /* display-financial: Big money numbers */
   --text-display-financial-size:    40px;

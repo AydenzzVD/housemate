@@ -7,6 +7,7 @@ import { getUserHouse, getHouseMembers, removeMember, leaveHouse } from '@/lib/h
 import { getCurrentCyclePayments } from '@/lib/payments';
 import { createBrowserClient } from '@supabase/ssr';
 import EmptyState from '@/components/EmptyState';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * House Members Directory — live multi-user data
@@ -14,6 +15,7 @@ import EmptyState from '@/components/EmptyState';
  */
 export default function HouseMembersPage() {
   const router = useRouter();
+  const { t, lang } = useLanguage();
   const [house, setHouse] = useState(null);
   const [members, setMembers] = useState([]);
   const [cycleGroups, setCycleGroups] = useState([]);
@@ -116,10 +118,10 @@ export default function HouseMembersPage() {
           </Link>
           <div>
             <h1 className="text-headline-lg text-on-surface" style={{ marginBottom: 2 }}>
-              House Members
+              {t('members.page_title')}
             </h1>
             <p className="text-body-md text-secondary">
-              {members.length} roommate{members.length !== 1 ? 's' : ''} in {house.name}
+              {members.length === 1 ? t('members.subtitle_one', { count: members.length, house: house.name }) : t('members.subtitle_other', { count: members.length, house: house.name })}
             </p>
           </div>
         </div>
@@ -133,7 +135,7 @@ export default function HouseMembersPage() {
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
               {copied ? 'check' : 'share'}
             </span>
-            {copied ? 'Code Copied!' : 'Invite Roommate'}
+            {copied ? t('members.code_copied') : t('members.invite_btn')}
           </button>
 
           <button
@@ -145,7 +147,7 @@ export default function HouseMembersPage() {
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
               logout
             </span>
-            Leave House
+            {t('members.leave_btn')}
           </button>
         </div>
       </div>
@@ -155,15 +157,15 @@ export default function HouseMembersPage() {
         <div className="col-span-8">
           <div className="card" style={{ padding: 'var(--space-xl)' }}>
             <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-lg)' }}>
-              Roommate Directory
+              {t('members.directory_title')}
             </h2>
 
             {members.length === 0 ? (
               <EmptyState
                 icon="👥"
-                title="You're the only member"
-                description="Share your house code to invite roommates."
-                actionLabel="Copy House Code"
+                title={t('members.no_members')}
+                description={t('members.no_members_desc')}
+                actionLabel={t('members.copy_code')}
                 onAction={handleCopyCode}
               />
             ) : (
@@ -208,23 +210,23 @@ export default function HouseMembersPage() {
                               {name}
                             </h3>
                             {isMe && (
-                              <span className="text-label-sm text-primary font-bold">(You)</span>
+                              <span className="text-label-sm text-primary font-bold">{t('common.you')}</span>
                             )}
                           </div>
                           <p className="text-body-md text-secondary" style={{ fontSize: 14 }}>
-                            Joined {new Date(member.joined_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {t('members.joined_on', { date: new Date(member.joined_at).toLocaleDateString(lang === 'km' ? 'km-KH' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }) })}
                           </p>
                         </div>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
                         <span className={`badge ${member.role === 'admin' ? 'badge-admin' : 'badge-member'}`}>
-                          {member.role === 'admin' ? 'Admin' : 'Member'}
+                          {member.role === 'admin' ? t('roles.admin') : t('roles.member')}
                         </span>
 
                         {firstGroup && (
                           <span className={`badge ${isPaid ? 'badge-paid' : 'badge-overdue'}`}>
-                            {isPaid ? 'Paid' : 'Waiting'}
+                            {isPaid ? t('status.paid') : t('status.waiting')}
                           </span>
                         )}
 
@@ -234,7 +236,7 @@ export default function HouseMembersPage() {
                             type="button"
                             onClick={() => { setActionError(''); setMemberToRemove(member); }}
                             className="btn-icon"
-                            title="Remove from house"
+                            title={t('members.remove_btn_label')}
                             style={{ color: 'var(--color-error, #d32f2f)', marginLeft: 'var(--space-xs)' }}
                           >
                             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
@@ -255,10 +257,10 @@ export default function HouseMembersPage() {
         <div className="col-span-4" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
           <div className="card" style={{ padding: 'var(--space-xl)' }}>
             <h3 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-sm)' }}>
-              House Code
+              {t('members.house_code')}
             </h3>
             <p className="text-body-md text-secondary" style={{ marginBottom: 'var(--space-md)' }}>
-              Give this code to roommates when they register:
+              {t('members.house_code_desc')}
             </p>
             <div
               style={{
@@ -281,15 +283,15 @@ export default function HouseMembersPage() {
             <div className="divider" style={{ marginBottom: 'var(--space-md)' }} />
 
             <h3 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-sm)' }}>
-              How Roles Work
+              {t('members.roles_title')}
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <span className="badge badge-admin">Admin</span>
+                  <span className="badge badge-admin">{t('members.admin_role')}</span>
                 </div>
                 <p className="text-body-md text-secondary" style={{ fontSize: 14 }}>
-                  Can add, edit, and deactivate shared bills, remove members, generate payment summary messages, and manage house settings.
+                  {t('members.admin_desc')}
                 </p>
               </div>
 
@@ -297,10 +299,10 @@ export default function HouseMembersPage() {
 
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <span className="badge badge-member">Member</span>
+                  <span className="badge badge-member">{t('members.member_role')}</span>
                 </div>
                 <p className="text-body-md text-secondary" style={{ fontSize: 14 }}>
-                  Can view shared bills, mark their own share as paid, track personal expenses, leave the house, and record Wi-Fi savings.
+                  {t('members.member_desc')}
                 </p>
               </div>
             </div>
@@ -324,10 +326,10 @@ export default function HouseMembersPage() {
         >
           <div className="card fade-in" style={{ maxWidth: 420, width: '100%', padding: 'var(--space-xl)' }}>
             <h3 className="text-headline-lg text-on-surface" style={{ marginBottom: 'var(--space-xs)' }}>
-              Remove Roommate?
+              {t('members.remove_title')}
             </h3>
             <p className="text-body-md text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
-              Are you sure you want to remove <strong>{memberToRemove.profiles?.full_name || 'this roommate'}</strong> from <strong>{house.name}</strong>? They will lose access to house bills.
+              {t('members.remove_desc', { name: memberToRemove.profiles?.full_name || 'this roommate', house: house.name })}
             </p>
 
             {actionError && (
@@ -344,7 +346,7 @@ export default function HouseMembersPage() {
                 onClick={() => setMemberToRemove(null)}
                 disabled={actionLoading}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -353,7 +355,7 @@ export default function HouseMembersPage() {
                 disabled={actionLoading}
                 style={{ backgroundColor: 'var(--color-error, #d32f2f)' }}
               >
-                {actionLoading ? 'Removing...' : 'Remove Member'}
+                {actionLoading ? t('members.removing') : t('members.remove_btn')}
               </button>
             </div>
           </div>
@@ -376,10 +378,10 @@ export default function HouseMembersPage() {
         >
           <div className="card fade-in" style={{ maxWidth: 420, width: '100%', padding: 'var(--space-xl)' }}>
             <h3 className="text-headline-lg text-on-surface" style={{ marginBottom: 'var(--space-xs)' }}>
-              Leave House?
+              {t('members.leave_title')}
             </h3>
             <p className="text-body-md text-secondary" style={{ marginBottom: 'var(--space-lg)' }}>
-              Are you sure you want to leave <strong>{house.name}</strong>? {isAdmin && members.length > 1 ? 'Since you are Admin, another member will be automatically promoted to Admin.' : ''}
+              {t('members.leave_desc', { house: house.name })} {isAdmin && members.length > 1 ? t('members.leave_desc_admin') : ''}
             </p>
 
             {actionError && (
@@ -396,7 +398,7 @@ export default function HouseMembersPage() {
                 onClick={() => setShowLeaveModal(false)}
                 disabled={actionLoading}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -405,7 +407,7 @@ export default function HouseMembersPage() {
                 disabled={actionLoading}
                 style={{ backgroundColor: 'var(--color-error, #d32f2f)' }}
               >
-                {actionLoading ? 'Leaving...' : 'Confirm Leave'}
+                {actionLoading ? t('members.leaving') : t('members.leave_btn_confirm')}
               </button>
             </div>
           </div>
@@ -414,4 +416,3 @@ export default function HouseMembersPage() {
     </div>
   );
 }
-

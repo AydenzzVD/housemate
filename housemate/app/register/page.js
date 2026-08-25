@@ -4,22 +4,18 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useLanguage } from '@/lib/lang/useLanguage';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 /**
  * Register Page
  *
  * Matches Stitch design: register_housemate/screen.png
- *
- * - Clean centered card layout on light background
- * - HouseMate icon + "Join HouseMate" header
- * - Full Name, Email, Password, Confirm Password inputs
- * - Primary Register button with forward arrow icon
- * - Link to Login
- * - Validations & friendly error messages
  */
 export default function RegisterPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useLanguage();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -33,17 +29,17 @@ export default function RegisterPage() {
     setError('');
 
     if (!fullName.trim()) {
-      setError('Please enter your full name.');
+      setError(t('auth.error_name_required'));
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError(t('auth.error_password_short'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('auth.error_password_mismatch'));
       return;
     }
 
@@ -62,9 +58,9 @@ export default function RegisterPage() {
 
       if (authError) {
         if (authError.message.includes('already registered')) {
-          setError('This email is already registered. Please log in.');
+          setError(t('auth.error_email_registered'));
         } else {
-          setError(authError.message || 'Registration failed. Please try again.');
+          setError(authError.message || t('auth.error_generic'));
         }
         setLoading(false);
       } else {
@@ -81,13 +77,18 @@ export default function RegisterPage() {
       }
     } catch (err) {
       console.error('Registration error:', err);
-      setError('Unable to connect. Please check your internet connection and try again.');
+      setError(t('auth.error_network'));
       setLoading(false);
     }
   }
 
   return (
-    <div className="auth-page">
+    <div className="auth-page" style={{ position: 'relative' }}>
+      {/* Top right language switcher */}
+      <div style={{ position: 'absolute', top: 'var(--space-md)', right: 'var(--space-md)', zIndex: 10 }}>
+        <LanguageSwitcher />
+      </div>
+
       <main className="auth-card fade-in" style={{ maxWidth: 448 }}>
         {/* Header */}
         <div className="auth-header">
@@ -104,10 +105,10 @@ export default function RegisterPage() {
               className="text-headline-lg-mobile text-on-surface"
               style={{ marginBottom: 4 }}
             >
-              Join HouseMate
+              {t('auth.join_title')}
             </h1>
             <p className="text-body-md text-secondary">
-              Financial harmony for shared living.
+              {t('auth.join_subtitle')}
             </p>
           </div>
         </div>
@@ -125,13 +126,13 @@ export default function RegisterPage() {
           {/* Full Name */}
           <div className="auth-form-group">
             <label htmlFor="name" className="input-label">
-              Full Name
+              {t('auth.full_name')}
             </label>
             <input
               id="name"
               type="text"
               required
-              placeholder="e.g. Devid Miller"
+              placeholder={t('auth.full_name_placeholder')}
               value={fullName}
               onChange={e => setFullName(e.target.value)}
               className="input-field"
@@ -141,14 +142,14 @@ export default function RegisterPage() {
           {/* Email */}
           <div className="auth-form-group">
             <label htmlFor="email" className="input-label">
-              Email Address
+              {t('auth.email_address')}
             </label>
             <input
               id="email"
               type="email"
               autoComplete="email"
               required
-              placeholder="you@example.com"
+              placeholder={t('auth.email_placeholder')}
               value={email}
               onChange={e => setEmail(e.target.value)}
               className="input-field"
@@ -158,14 +159,14 @@ export default function RegisterPage() {
           {/* Password */}
           <div className="auth-form-group">
             <label htmlFor="password" className="input-label">
-              Password
+              {t('auth.password')}
             </label>
             <input
               id="password"
               type="password"
               autoComplete="new-password"
               required
-              placeholder="At least 6 characters"
+              placeholder={t('auth.password_placeholder')}
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="input-field"
@@ -175,14 +176,14 @@ export default function RegisterPage() {
           {/* Confirm Password */}
           <div className="auth-form-group">
             <label htmlFor="confirm-password" className="input-label">
-              Confirm Password
+              {t('auth.confirm_password')}
             </label>
             <input
               id="confirm-password"
               type="password"
               autoComplete="new-password"
               required
-              placeholder="Re-enter your password"
+              placeholder={t('auth.confirm_placeholder')}
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
               className="input-field"
@@ -205,11 +206,11 @@ export default function RegisterPage() {
                 <span className="material-symbols-outlined" style={{ fontSize: 20, animation: 'spin 1s linear infinite' }}>
                   progress_activity
                 </span>
-                Creating account...
+                {t('auth.creating_account')}
               </>
             ) : (
               <>
-                <span>Register</span>
+                <span>{t('auth.register_btn')}</span>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
                   arrow_forward
                 </span>
@@ -222,9 +223,9 @@ export default function RegisterPage() {
             className="text-body-md text-secondary text-center"
             style={{ marginTop: 'var(--space-sm)' }}
           >
-            Already have an account?{' '}
+            {t('auth.have_account')}{' '}
             <Link href="/login" className="text-label-md text-primary">
-              Login
+              {t('auth.login_link')}
             </Link>
           </p>
         </form>

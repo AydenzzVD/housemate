@@ -7,12 +7,14 @@ import { getMyBudget } from '@/lib/budgets';
 import { getUserHouse } from '@/lib/houses';
 import { formatCents, CATEGORY_ICONS, EXPENSE_CATEGORIES, currentMonthYear } from '@/lib/money';
 import EmptyState from '@/components/EmptyState';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * Personal Expenses Log Page — live multi-user data (strictly private)
  * Matches Stitch design: my_expenses_housemate/screen.png
  */
 export default function ExpensesPage() {
+  const { t, lang } = useLanguage();
   const [house, setHouse] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [budget, setBudget] = useState(null);
@@ -55,7 +57,7 @@ export default function ExpensesPage() {
     return e.category === selectedCat;
   });
 
-  const monthName = new Date().toLocaleString('en-US', { month: 'long' });
+  const monthName = new Date().toLocaleString(lang === 'km' ? 'km-KH' : 'en-US', { month: 'long' });
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
@@ -63,19 +65,19 @@ export default function ExpensesPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div>
           <p className="text-label-md text-secondary" style={{ marginBottom: 2 }}>
-            My Private Money / {monthName}
+            {t('expenses.page_breadcrumb', { month: monthName })}
           </p>
-          <h1 className="text-headline-lg text-on-surface">Personal Spending</h1>
+          <h1 className="text-headline-lg text-on-surface">{t('expenses.page_title')}</h1>
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
           <Link href="/spending" className="btn-secondary" style={{ textDecoration: 'none' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>analytics</span>
-            Analysis
+            {t('expenses.analysis_btn')}
           </Link>
           <Link href="/expenses/add" className="btn-primary" style={{ textDecoration: 'none' }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
-            Add Expense
+            {t('expenses.add_expense_btn')}
           </Link>
         </div>
       </div>
@@ -97,7 +99,7 @@ export default function ExpensesPage() {
 
           <div>
             <p className="text-label-md text-secondary" style={{ marginBottom: 4 }}>
-              Total personal spending this month
+              {t('expenses.total_label')}
             </p>
             <div className="text-display-financial text-on-surface" style={{ marginBottom: 'var(--space-lg)' }}>
               {formatCents(totalSpentCents, house?.currency)}
@@ -105,9 +107,9 @@ export default function ExpensesPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', flexWrap: 'wrap' }}>
               <div>
-                <span className="text-label-sm text-secondary uppercase tracking-wider">Monthly Budget</span>
+                <span className="text-label-sm text-secondary uppercase tracking-wider">{t('expenses.monthly_budget')}</span>
                 <p className="text-headline-md text-on-surface">
-                  {budgetCents > 0 ? formatCents(budgetCents, house?.currency) : 'Not set'}
+                  {budgetCents > 0 ? formatCents(budgetCents, house?.currency) : t('common.not_set')}
                 </p>
               </div>
 
@@ -116,7 +118,7 @@ export default function ExpensesPage() {
                   <div style={{ width: 1, height: 32, backgroundColor: 'var(--color-surface-container-high)' }} />
 
                   <div>
-                    <span className="text-label-sm text-secondary uppercase tracking-wider">Remaining</span>
+                    <span className="text-label-sm text-secondary uppercase tracking-wider">{t('expenses.remaining')}</span>
                     <p className="text-headline-md text-primary font-bold">
                       {formatCents(remainingCents, house?.currency)}
                     </p>
@@ -129,8 +131,8 @@ export default function ExpensesPage() {
           {budgetCents > 0 && (
             <div style={{ marginTop: 'var(--space-lg)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                <span className="text-secondary">{budgetUsedPct}% of budget used</span>
-                <span className="text-primary font-semibold">{budgetUsedPct > 100 ? 'Over Budget' : 'On Track'}</span>
+                <span className="text-secondary">{t('expenses.budget_used', { pct: budgetUsedPct })}</span>
+                <span className="text-primary font-semibold">{budgetUsedPct > 100 ? t('expenses.over_budget') : t('expenses.on_track')}</span>
               </div>
               <div className="progress-bar-track">
                 <div className="progress-bar-fill" style={{ width: `${budgetUsedPct}%`, backgroundColor: budgetUsedPct > 100 ? 'var(--color-error)' : undefined }} />
@@ -141,7 +143,7 @@ export default function ExpensesPage() {
           {budgetCents === 0 && (
             <div style={{ marginTop: 'var(--space-md)' }}>
               <Link href="/budget" className="text-label-md text-primary font-semibold" style={{ textDecoration: 'none' }}>
-                Set a monthly budget →
+                {t('expenses.set_budget_cta')}
               </Link>
             </div>
           )}
@@ -181,10 +183,10 @@ export default function ExpensesPage() {
           </div>
 
           <h3 className="text-headline-md" style={{ color: '#ffffff', marginBottom: 4 }}>
-            Record a Purchase
+            {t('expenses.record_purchase')}
           </h3>
           <p className="text-body-md" style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 14, marginBottom: 'var(--space-lg)' }}>
-            Keep your personal spending accurate by logging expenses quickly.
+            {t('expenses.record_desc')}
           </p>
 
           <Link
@@ -199,7 +201,7 @@ export default function ExpensesPage() {
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
-            Add Expense
+            {t('expenses.add_expense_btn')}
           </Link>
         </div>
       </div>
@@ -212,39 +214,43 @@ export default function ExpensesPage() {
           className={`badge ${selectedCat === 'All' ? 'badge-admin' : 'badge-member'}`}
           style={{ padding: '6px 14px', cursor: 'pointer', fontSize: 13 }}
         >
-          All ({expenses.length})
+          {t('common.all')} ({expenses.length})
         </button>
-        {EXPENSE_CATEGORIES.map(cat => (
-          <button
-            key={cat}
-            type="button"
-            onClick={() => setSelectedCat(cat)}
-            className={`badge ${selectedCat === cat ? 'badge-admin' : 'badge-member'}`}
-            style={{ padding: '6px 14px', cursor: 'pointer', fontSize: 13 }}
-          >
-            {CATEGORY_ICONS[cat]} {cat}
-          </button>
-        ))}
+        {EXPENSE_CATEGORIES.map(cat => {
+          const translatedCat = t(`expense_categories.${cat}`) || cat;
+          return (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setSelectedCat(cat)}
+              className={`badge ${selectedCat === cat ? 'badge-admin' : 'badge-member'}`}
+              style={{ padding: '6px 14px', cursor: 'pointer', fontSize: 13 }}
+            >
+              {CATEGORY_ICONS[cat]} {translatedCat}
+            </button>
+          );
+        })}
       </div>
 
       {/* Recent Expenses List */}
       <div className="card" style={{ padding: 'var(--space-xl)' }}>
         <h2 className="text-headline-md text-on-surface" style={{ marginBottom: 'var(--space-md)' }}>
-          Recent Transactions
+          {t('expenses.recent_title')}
         </h2>
 
         {filteredExpenses.length === 0 ? (
           <EmptyState
             icon="🛍️"
-            title="No expenses logged yet"
-            description="Log your daily coffee, transport, or groceries to see where your money goes."
-            actionLabel="Add First Expense"
+            title={t('expenses.no_expenses')}
+            description={t('expenses.no_expenses_desc')}
+            actionLabel={t('expenses.add_first')}
             actionHref="/expenses/add"
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {filteredExpenses.map((exp, idx) => {
               const icon = CATEGORY_ICONS[exp.category] || '💡';
+              const translatedCat = t(`expense_categories.${exp.category}`) || exp.category;
               return (
                 <div
                   key={exp.id}
@@ -280,7 +286,7 @@ export default function ExpensesPage() {
                         </Link>
                       </div>
                       <p className="text-label-sm text-secondary">
-                        {exp.date} • {exp.category} {exp.note && `• ${exp.note}`}
+                        {exp.date} • {translatedCat} {exp.note && `• ${exp.note}`}
                       </p>
                     </div>
                   </div>
@@ -290,7 +296,7 @@ export default function ExpensesPage() {
                       {formatCents(exp.amount_cents, house?.currency)}
                     </p>
                     <span className="badge badge-member" style={{ fontSize: 10, marginTop: 2 }}>
-                      Personal
+                      {t('expenses.personal_badge')}
                     </span>
                   </div>
                 </div>
