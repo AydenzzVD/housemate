@@ -38,7 +38,18 @@
     "near_limit": "ជិតដល់ដែន",
     "no_target": "មិនទាន់កំណត់គោលដៅ",
     "on_track": "ទៀងទាត់",
-    "over_budget": "លើសថវិកា"
+    "over_budget": "លើសថវិកា",
+    "fully_paid": "បានបង់ហើយ",
+    "cancelled": "បានបោះបង់"
+  },
+  "deadline": {
+    "due_today": "ផុតកំណត់ថ្ងៃនេះ",
+    "due_in_days": "នៅ {days} ថ្ងៃទៀត",
+    "due_in_1_day": "ថ្ងៃស្អែកផុតកំណត់",
+    "overdue_days": "យឺត {days} ថ្ងៃ",
+    "overdue_1_day": "យឺត ១ ថ្ងៃ",
+    "paid": "បានបង់",
+    "ready_to_pay": "ត្រៀមបង់ហើយ"
   },
   "roles": {
     "admin": "Admin",
@@ -290,8 +301,30 @@
     "member_breakdown": "ចំណែកការទូទាត់",
     "due_date": "ផុតកំណត់: {date}",
     "share_of": "ចំណែក {bill}",
-    "toast_paid": "✓ ចំណែករបស់អ្នកទាំងអស់ត្រូវបានសម្គាល់ថាបានបង់!",
-    "toast_unpaid": "↩ ត្រូវបានផ្លាស់ប្ដូរជារង់ចាំ"
+    "toast_paid": "✓ សម្គាល់ថាបានបង់ហើយ!",
+    "toast_unpaid": "↩ បានផ្លាស់ប្ដូរជារង់ចាំ",
+    "what_i_owe": "ខ្ញុំត្រូវបង់",
+    "monthly_house_payments": "ការទូទាត់ប្រចាំខែ",
+    "mark_share_paid_btn": "សម្គាល់ចំណែករបស់ខ្ញុំថាបានបង់",
+    "mark_share_waiting_btn": "ត្រឡប់ជារង់ចាំ",
+    "payment_history": "ប្រវត្តិការទូទាត់",
+    "no_history": "គ្មានប្រវត្តិការទូទាត់ទេ",
+    "no_history_desc": "ការទូទាត់កន្លងទៅរបស់អ្នកនឹងបង្ហាញនៅទីនេះ។",
+    "history_title": "ប្រវត្តិការទូទាត់របស់ខ្ញុំ",
+    "wifi_not_due": "មិនទាន់ដល់ពេល",
+    "wifi_saving_progress": "ការស្តុកប្រាក់ Wi-Fi"
+  },
+  "wifi_fund": {
+    "title": "ថវិកា Wi-Fi",
+    "target": "គោលដៅ",
+    "saved": "បានស្តុក",
+    "remaining": "នៅខ្វះ",
+    "monthly_contribution": "ស្តុកប្រចាំខែ",
+    "ready_to_pay": "ត្រៀមបង់ហើយ!",
+    "add_savings": "បន្ថែមការស្តុក",
+    "record_deposit": "ចុះបញ្ជីការស្តុក",
+    "not_due_yet": "មិនទាន់ដល់ {date}",
+    "progress": "ស្តុករួច {pct}%"
   },
   "payment_message": {
     "page_title": "សារទូទាត់រៀបរាប់",
@@ -411,5 +444,18 @@
     "delete_expense": "មិនអាចលុបការចំណាយ។",
     "save_budget": "មិនអាចរក្សាទុកថវិកា។",
     "save_bill": "មិនអាចរក្សាទុកវិក្កយបត្រ។"
+  },
+  "bills_mgmt": {
+    "deactivate_bill": "បិទវិក្កយបត្រ",
+    "reactivate_bill": "បើករឹងវិក្កយបត្រ",
+    "deactivate_confirm": "បិទវិក្កយបត្រនេះ? វដ្តថ្មីនឹងមិនបង្កើតទៀតទេ។ ប្រវត្តិដែលមានស្រាប់នឹងរក្សាទុក។",
+    "reactivate_confirm": "បើករឹងវិក្កយបត្រ? វដ្តនាថ្ងៃខាងមុខនឹងបន្ត។",
+    "deactivated_badge": "មិនសកម្ម",
+    "active_badge": "សកម្ម",
+    "history_frozen_note": "វដ្តប្រវត្តិនឹងមិនផ្លាស់ប្ដូរទេ។",
+    "amount_change_note": "ការផ្លាស់ប្ដូរចំនួនប្រាក់ប៉ះពាល់តែវដ្តខាងមុខ។ ប្រវត្តិដើមមិនផ្លាស់ប្ដូរ។",
+    "no_history": "មិនទាន់មានប្រវត្តិ។",
+    "deactivated_toast": "✓ វិក្កយបត្របានបិទ។ ទិន្នន័យប្រវត្តិបានរក្សាទុក។",
+    "reactivated_toast": "✓ វិក្កយបត្របានបើករឹង។ វដ្តខាងមុខនឹងបន្ត។"
   }
 }

@@ -4,6 +4,7 @@
  * All mutations are admin-only (enforced by RLS + RPC).
  */
 import { createBrowserClient } from '@supabase/ssr';
+import { calculateFirstCycleDate } from '@/lib/dates';
 
 function getClient() {
   return createBrowserClient(
@@ -56,9 +57,9 @@ export async function getAllHouseBills(houseId) {
 }
 
 /**
- * Get a single bill by ID, plus its latest bill_cycle and payments.
+ * Get a single bill by ID, plus all its bill_cycles (for history) and the latest cycle's payments.
  * @param {string} billId
- * @returns {Promise<{bill, latestCycle, payments}|null>}
+ * @returns {Promise<{bill, cycles, latestCycle, payments}|null>}
  */
 export async function getBillById(billId) {
   const supabase = getClient();
@@ -75,17 +76,16 @@ export async function getBillById(billId) {
     return null;
   }
 
-  // Fetch latest open cycle
+  // Fetch all cycles for history (most recent first)
   const { data: cycles } = await supabase
     .from('bill_cycles')
     .select('id, period_start, period_end, due_date, total_amount_cents, status')
     .eq('bill_id', billId)
-    .order('period_start', { ascending: false })
-    .limit(1);
+    .order('period_start', { ascending: false });
 
   const latestCycle = cycles?.[0] ?? null;
 
-  // Fetch payments for that cycle
+  // Fetch payments for the latest cycle
   let payments = [];
   if (latestCycle) {
     const { data: paymentData } = await supabase
@@ -97,11 +97,14 @@ export async function getBillById(billId) {
     payments = paymentData ?? [];
   }
 
-  return { bill, latestCycle, payments };
+  return { bill, cycles: cycles ?? [], latestCycle, payments };
 }
 
 /**
  * Create a new bill and immediately create its first billing cycle.
+ * Uses lib/dates.js to calculate the correct first cycle date —
+ * prevents the new bill from being immediately overdue.
+ *
  * Admin only (enforced by create_bill_cycle RPC).
  * @param {Object} params
  * @returns {Promise<{data: {billId, cycleId}|null, error: string|null}>}
@@ -109,7 +112,7 @@ export async function getBillById(billId) {
 export async function createBill({ houseId, name, totalAmountCents, frequency, dueDayOfMonth, category }) {
   const supabase = getClient();
 
-  // Insert the bill
+  // Insert the bill definition
   const { data: bill, error: billError } = await supabase
     .from('bills')
     .insert({
@@ -125,56 +128,57 @@ export async function createBill({ houseId, name, totalAmountCents, frequency, d
 
   if (billError) return { data: null, error: billError.message };
 
-  // Create first bill cycle via RPC (admin enforced, frozen shares)
-  const today = new Date();
-  const periodStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const periodEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  const dueDate = new Date(today.getFullYear(), today.getMonth(), dueDayOfMonth);
-
-  const fmt = (d) => d.toISOString().split('T')[0];
+  // Calculate the correct first cycle using house timezone logic
+  // This prevents "created Aug 25, due day 16" from being immediately overdue
+  const { periodStart, periodEnd, dueDate } = calculateFirstCycleDate(dueDayOfMonth, frequency);
 
   const { data: cycleData, error: cycleError } = await supabase.rpc('create_bill_cycle', {
-    p_bill_id: bill.id,
-    p_period_start: fmt(periodStart),
-    p_period_end: fmt(periodEnd),
-    p_due_date: fmt(dueDate),
+    p_bill_id:      bill.id,
+    p_period_start: periodStart,
+    p_period_end:   periodEnd,
+    p_due_date:     dueDate,
   });
 
   if (cycleError) {
     console.error('create_bill_cycle error:', cycleError.message);
     // Bill was created but cycle failed — still return the bill ID
-    return { data: { billId: bill.id, cycleId: null }, error: `Bill created but cycle failed: ${cycleError.message}` };
+    return {
+      data: { billId: bill.id, cycleId: null },
+      error: `Bill created but first cycle failed: ${cycleError.message}`,
+    };
   }
 
   return { data: { billId: bill.id, cycleId: cycleData?.cycle_id }, error: null };
 }
 
 /**
- * Update a bill's definition (name, amount, due day, category).
+ * Update a bill's definition (name, amount, due day, category, frequency).
  * Does NOT modify existing bill_cycles or bill_payments.
- * Admin only (RLS enforced).
+ * The change only affects FUTURE cycles generated after this update.
+ * Admin only (RLS + RPC enforced).
+ *
  * @param {string} billId
- * @param {Object} updates - { name, totalAmountCents, dueDayOfMonth, category }
+ * @param {Object} updates - { name, totalAmountCents, dueDayOfMonth, category, frequency }
  * @returns {Promise<{error: string|null}>}
  */
-export async function updateBill(billId, { name, totalAmountCents, dueDayOfMonth, category }) {
+export async function updateBill(billId, { name, totalAmountCents, dueDayOfMonth, category, frequency }) {
   const supabase = getClient();
 
-  const { error } = await supabase
-    .from('bills')
-    .update({
-      name: name.trim(),
-      total_amount_cents: totalAmountCents,
-      due_day_of_month: dueDayOfMonth,
-      category,
-    })
-    .eq('id', billId);
+  const { error } = await supabase.rpc('update_bill_definition', {
+    p_bill_id:            billId,
+    p_name:               name.trim(),
+    p_total_amount_cents: totalAmountCents,
+    p_frequency:          frequency,
+    p_due_day_of_month:   dueDayOfMonth,
+    p_category:           category,
+  });
 
   return { error: error?.message ?? null };
 }
 
 /**
  * Deactivate a bill (soft delete). Preserves all history.
+ * No new future cycles will be created. Existing cycles remain visible.
  * Admin only.
  * @param {string} billId
  * @returns {Promise<{error: string|null}>}
@@ -185,6 +189,24 @@ export async function deactivateBill(billId) {
   const { error } = await supabase
     .from('bills')
     .update({ is_active: false })
+    .eq('id', billId);
+
+  return { error: error?.message ?? null };
+}
+
+/**
+ * Reactivate a previously deactivated bill.
+ * Future cycles will resume being generated.
+ * Admin only.
+ * @param {string} billId
+ * @returns {Promise<{error: string|null}>}
+ */
+export async function reactivateBill(billId) {
+  const supabase = getClient();
+
+  const { error } = await supabase
+    .from('bills')
+    .update({ is_active: true })
     .eq('id', billId);
 
   return { error: error?.message ?? null };
@@ -229,4 +251,21 @@ export async function getBillCycleCount(billId) {
     .select('id', { count: 'exact', head: true })
     .eq('bill_id', billId);
   return count ?? 0;
+}
+
+/**
+ * Get all historical bill cycles for a bill (sorted newest first).
+ * @param {string} billId
+ * @returns {Promise<Array>}
+ */
+export async function getBillCycleHistory(billId) {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from('bill_cycles')
+    .select('id, period_start, period_end, due_date, total_amount_cents, status')
+    .eq('bill_id', billId)
+    .order('period_start', { ascending: false });
+
+  if (error) return [];
+  return data ?? [];
 }

@@ -38,7 +38,18 @@
     "near_limit": "Near Limit",
     "no_target": "No Target Set",
     "on_track": "On Track",
-    "over_budget": "Over Budget"
+    "over_budget": "Over Budget",
+    "fully_paid": "Fully Paid",
+    "cancelled": "Cancelled"
+  },
+  "deadline": {
+    "due_today": "Due today",
+    "due_in_days": "Due in {days} days",
+    "due_in_1_day": "Due tomorrow",
+    "overdue_days": "{days} days overdue",
+    "overdue_1_day": "1 day overdue",
+    "paid": "Paid",
+    "ready_to_pay": "Ready to Pay"
   },
   "roles": {
     "admin": "Admin",
@@ -290,8 +301,30 @@
     "member_breakdown": "Member Shares Breakdown",
     "due_date": "Due: {date}",
     "share_of": "Share of {bill}",
-    "toast_paid": "✓ All your shares marked as Paid!",
-    "toast_unpaid": "↩ Shares marked as Unpaid"
+    "toast_paid": "✓ Marked as Paid!",
+    "toast_unpaid": "↩ Marked as Waiting",
+    "what_i_owe": "What I Owe Now",
+    "monthly_house_payments": "Monthly House Payments",
+    "mark_share_paid_btn": "Mark My Share as Paid",
+    "mark_share_waiting_btn": "Mark as Waiting",
+    "payment_history": "Payment History",
+    "no_history": "No payment history yet",
+    "no_history_desc": "Your past bill payments will appear here.",
+    "history_title": "My Payment History",
+    "wifi_not_due": "Not due yet",
+    "wifi_saving_progress": "Wi-Fi Savings Progress"
+  },
+  "wifi_fund": {
+    "title": "Wi-Fi Fund",
+    "target": "Target",
+    "saved": "Saved",
+    "remaining": "Remaining",
+    "monthly_contribution": "Monthly contribution",
+    "ready_to_pay": "Ready to Pay!",
+    "add_savings": "Add Savings",
+    "record_deposit": "Record Deposit",
+    "not_due_yet": "Not due until {date}",
+    "progress": "{pct}% saved"
   },
   "payment_message": {
     "page_title": "Payment Message Ready",
@@ -411,5 +444,18 @@
     "delete_expense": "Failed to delete expense.",
     "save_budget": "Failed to save budget.",
     "save_bill": "Failed to save bill."
+  },
+  "bills_mgmt": {
+    "deactivate_bill": "Deactivate Bill",
+    "reactivate_bill": "Reactivate Bill",
+    "deactivate_confirm": "Deactivate this bill? No new cycles will be created. Existing history is preserved.",
+    "reactivate_confirm": "Reactivate this bill? Future cycles will resume.",
+    "deactivated_badge": "Inactive",
+    "active_badge": "Active",
+    "history_frozen_note": "Historical cycles are frozen and will not change.",
+    "amount_change_note": "Changing the amount only affects future cycles. August history stays at its original amount.",
+    "no_history": "No billing history yet.",
+    "deactivated_toast": "✓ Bill deactivated. Historical data preserved.",
+    "reactivated_toast": "✓ Bill reactivated. Future cycles will resume."
   }
 }

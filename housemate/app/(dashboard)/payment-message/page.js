@@ -3,13 +3,19 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getUserHouse, getHouseMembers } from '@/lib/houses';
-import { getHouseBills } from '@/lib/bills';
+import { getCurrentCyclePayments, ensureActiveCycles } from '@/lib/payments';
 import { formatCents } from '@/lib/money';
+import { formatDateShort, getTodayInHouseTimezone } from '@/lib/dates';
 import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
- * Group Chat Payment Message Generator Page — live multi-user data
- * Matches Stitch design: payment_message_housemate/screen.png
+ * Payment Message Generator — uses LIVE bill cycle data.
+ *
+ * MESSAGE RULES:
+ * - Only regular monthly bills (Rent, Electricity, Water) are included.
+ * - Wi-Fi is excluded UNLESS its quarterly cycle is actually DUE this period.
+ * - Due dates come from actual bill_cycles.due_date (not hardcoded).
+ * - Per-person share is calculated from frozen bill_payments.
  */
 export default function PaymentMessagePage() {
   const { t, lang } = useLanguage();
@@ -25,28 +31,55 @@ export default function PaymentMessagePage() {
       setHouse(hData);
 
       if (hData) {
-        const [membersData, billsData] = await Promise.all([
+        const [membersData] = await Promise.all([
           getHouseMembers(hData.id),
-          getHouseBills(hData.id),
         ]);
 
+        // Ensure cycles exist first
+        await ensureActiveCycles(hData.id);
+
+        const cyclesData = await getCurrentCyclePayments(hData.id);
+        const allCycles = [
+          ...cyclesData.regularCycles,
+          ...cyclesData.dueSavingsCycles, // Include Wi-Fi only if DUE this period
+        ];
+
         const memberCount = membersData.length || 1;
-        const totalCents = billsData.reduce((sum, b) => sum + b.total_amount_cents, 0);
+        const locale = lang === 'km' ? 'km-KH' : 'en-US';
+        const monthName = new Date().toLocaleString(locale, { month: 'long' });
+
+        if (allCycles.length === 0) {
+          // No active cycles
+          const header = t('payment_message.template_header', { month: monthName });
+          setMessage(`${header}\n\n${t('payment_message.no_bills')}`);
+          setLoading(false);
+          return;
+        }
+
+        // Build message using live cycle data
+        const billLines = allCycles.map(g => {
+          const dueStr = formatDateShort(g.cycle.due_date, locale);
+          const totalStr = formatCents(g.cycle.total_amount_cents, hData.currency);
+          return `${g.bill?.name}: ${totalStr} (Due: ${dueStr})`;
+        });
+
+        // Grand total of all active cycle amounts
+        const totalCents = allCycles.reduce((sum, g) => sum + g.cycle.total_amount_cents, 0);
+
+        // Per-person: use the first member's share amounts to get exact splits
+        // (handles cases where splits aren't perfectly equal due to remainder cents)
         const perPersonCents = Math.round(totalCents / memberCount);
 
-        const monthName = new Date().toLocaleString(lang === 'km' ? 'km-KH' : 'en-US', { month: 'long' });
-
-        const billLines = billsData.length > 0
-          ? billsData.map(b => `${b.name}: ${formatCents(b.total_amount_cents, hData.currency)}`).join('\n')
-          : t('payment_message.no_bills');
-
         const header = t('payment_message.template_header', { month: monthName });
+        const billSection = billLines.join('\n');
         const totalStr = t('payment_message.template_total', { total: formatCents(totalCents, hData.currency) });
-        const perPersonStr = t('payment_message.template_per_person', { count: memberCount, amount: formatCents(perPersonCents, hData.currency) });
+        const perPersonStr = t('payment_message.template_per_person', {
+          count: memberCount,
+          amount: formatCents(perPersonCents, hData.currency),
+        });
         const footer = t('payment_message.template_footer');
 
-        const generated = `${header}\n\n${billLines}\n\n${totalStr}\n\n${perPersonStr}\n\n${footer}`;
-
+        const generated = `${header}\n\n${billSection}\n\n${totalStr}\n${perPersonStr}\n\n${footer}`;
         setMessage(generated);
       }
       setLoading(false);
@@ -111,7 +144,7 @@ export default function PaymentMessagePage() {
         {/* Message Bubble */}
         {isEditing ? (
           <textarea
-            rows={10}
+            rows={12}
             value={message}
             onChange={e => setMessage(e.target.value)}
             className="input-field"

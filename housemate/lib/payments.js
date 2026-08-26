@@ -1,8 +1,14 @@
 /**
  * lib/payments.js
  * Bill payment queries and status toggling.
+ *
+ * KEY DESIGN:
+ * - Monthly bills (rent, electricity, water) → returned as "What I Owe Now"
+ * - Quarterly/savings bills (Wi-Fi) → returned separately as "savings" unless in due period
+ * - Individual per-bill payment status via mark_my_payment_status RPC
  */
 import { createBrowserClient } from '@supabase/ssr';
+import { isSavingsCycle, getTodayInHouseTimezone } from '@/lib/dates';
 
 function getClient() {
   return createBrowserClient(
@@ -12,32 +18,57 @@ function getClient() {
 }
 
 /**
- * Get all payment records for the latest open bill cycle in a house.
- * Returns grouped by bill — { bill, cycle, payments[] }
+ * Trigger idempotent cycle generation for the current user's house.
+ * Calls ensure_house_bill_cycles RPC with today's date.
+ * Safe to call multiple times — won't duplicate cycles.
  * @param {string} houseId
- * @returns {Promise<Array<{bill, cycle, payments}>>}
+ */
+export async function ensureActiveCycles(houseId) {
+  const supabase = getClient();
+  const today = getTodayInHouseTimezone();
+
+  const { error } = await supabase.rpc('ensure_house_bill_cycles', {
+    p_house_id:    houseId,
+    p_target_date: today,
+  });
+
+  if (error) {
+    console.error('ensureActiveCycles error:', error.message);
+  }
+}
+
+/**
+ * Get all open/overdue bill cycle payment groups for a house.
+ *
+ * Returns two separate arrays:
+ *   - regularCycles: monthly bills (rent, electricity, water, etc.)
+ *   - savingsCycles: quarterly/semi_annual/yearly bills not yet in their due period
+ *   - dueSavingsCycles: quarterly bills that ARE in their due period (real payment obligations)
+ *
+ * @param {string} houseId
+ * @returns {Promise<{regularCycles: Array, savingsCycles: Array, dueSavingsCycles: Array}>}
  */
 export async function getCurrentCyclePayments(houseId) {
   const supabase = getClient();
 
-  // Get the most recent open cycle for each bill in this house
+  // Get all open + overdue cycles (NOT fully_paid, NOT cancelled, NOT upcoming)
   const { data: cycles, error } = await supabase
     .from('bill_cycles')
     .select(`
       id, period_start, period_end, due_date, total_amount_cents, status,
-      bills(id, name, category, frequency),
+      bills(id, name, category, frequency, is_active),
       bill_payments(id, user_id, share_amount_cents, status, paid_at, profiles(full_name, avatar_url))
     `)
     .eq('house_id', houseId)
-    .eq('status', 'open')
+    .in('status', ['open', 'overdue'])
     .order('due_date', { ascending: true });
 
   if (error) {
     console.error('getCurrentCyclePayments error:', error.message);
-    return [];
+    return { regularCycles: [], savingsCycles: [], dueSavingsCycles: [] };
   }
 
-  return (cycles ?? []).map(cycle => ({
+  const mapped = (cycles ?? []).map(cycle => ({
     bill: cycle.bills,
     cycle: {
       id: cycle.id,
@@ -49,11 +80,32 @@ export async function getCurrentCyclePayments(houseId) {
     },
     payments: cycle.bill_payments ?? [],
   }));
+
+  // Separate into regular vs savings
+  const regularCycles = [];
+  const savingsCycles = [];
+  const dueSavingsCycles = [];
+
+  for (const group of mapped) {
+    const freq = group.bill?.frequency ?? 'monthly';
+    if (isSavingsCycle(freq, group.cycle.period_start, group.cycle.due_date)) {
+      savingsCycles.push(group);
+    } else if (freq !== 'monthly' && freq !== 'one_time') {
+      // Quarterly/semi_annual in their DUE period → real obligation
+      dueSavingsCycles.push(group);
+    } else {
+      regularCycles.push(group);
+    }
+  }
+
+  return { regularCycles, savingsCycles, dueSavingsCycles };
 }
 
 /**
  * Toggle the current user's payment status for a specific bill_payment record.
  * Uses the mark_my_payment_status RPC (SECURITY DEFINER — only own payments can be toggled).
+ * The RPC also auto-marks the cycle as fully_paid when all members have paid.
+ *
  * @param {string} paymentId
  * @param {'paid'|'pending'} newStatus
  * @returns {Promise<{error: string|null}>}
@@ -70,7 +122,10 @@ export async function toggleMyPayment(paymentId, newStatus) {
 }
 
 /**
- * Get all payment history for the current user across all cycles.
+ * Get the current user's payment history across ALL bill cycles.
+ * Returns records sorted by period_start descending.
+ * Historical records are NEVER rewritten due to member changes.
+ *
  * @returns {Promise<Array>}
  */
 export async function getMyPaymentHistory() {
@@ -82,14 +137,43 @@ export async function getMyPaymentHistory() {
     .from('bill_payments')
     .select(`
       id, share_amount_cents, status, paid_at,
-      bill_cycles(period_start, due_date, bills(name, category))
+      bill_cycles(id, period_start, period_end, due_date, status, total_amount_cents, bills(id, name, category, frequency))
     `)
     .eq('user_id', user.id)
-    .order('paid_at', { ascending: false })
-    .limit(50);
+    .order('created_at', { ascending: false })
+    .limit(100);
 
   if (error) {
     console.error('getMyPaymentHistory error:', error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+/**
+ * Get payment history for all members of a house, grouped by bill cycle.
+ * Used by admin views to see the full house payment history.
+ *
+ * @param {string} houseId
+ * @returns {Promise<Array>}
+ */
+export async function getHousePaymentHistory(houseId) {
+  const supabase = getClient();
+
+  const { data, error } = await supabase
+    .from('bill_cycles')
+    .select(`
+      id, period_start, period_end, due_date, total_amount_cents, status,
+      bills(id, name, category, frequency),
+      bill_payments(id, user_id, share_amount_cents, status, paid_at, profiles(full_name, avatar_url))
+    `)
+    .eq('house_id', houseId)
+    .in('status', ['fully_paid', 'open', 'overdue'])
+    .order('period_start', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error('getHousePaymentHistory error:', error.message);
     return [];
   }
   return data ?? [];
@@ -102,16 +186,17 @@ export async function getMyPaymentHistory() {
  */
 export async function getUpcomingBillCycles(houseId) {
   const supabase = getClient();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayInHouseTimezone();
 
   const { data, error } = await supabase
     .from('bill_cycles')
     .select(`
-      id, due_date, total_amount_cents, status,
+      id, due_date, total_amount_cents, status, period_start,
       bills(id, name, category, frequency)
     `)
     .eq('house_id', houseId)
     .gte('due_date', today)
+    .in('status', ['open', 'overdue', 'upcoming'])
     .order('due_date', { ascending: true })
     .limit(20);
 
