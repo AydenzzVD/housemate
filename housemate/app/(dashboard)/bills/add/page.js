@@ -6,26 +6,29 @@ import Link from 'next/link';
 import { getUserHouse, getHouseMembers } from '@/lib/houses';
 import { createBill } from '@/lib/bills';
 import { parseToCents, formatCents } from '@/lib/money';
+import { getTodayInHouseTimezone, calculateCycleFromStartDate, formatDateShort } from '@/lib/dates';
 import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * Add New Shared Bill Page — live multi-user data
- * Admin only.
- * Matches Stitch design: add_bill_housemate/screen.png
+ * Admin only. Allows explicit Start Date selection & Due Timing configuration.
  */
 export default function AddBillPage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const [house, setHouse] = useState(null);
   const [members, setMembers] = useState([]);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('45.00');
   const [frequency, setFrequency] = useState('monthly');
-  const [dueDayOfMonth, setDueDayOfMonth] = useState(1);
+  const [startDate, setStartDate] = useState(getTodayInHouseTimezone());
+  const [dueTiming, setDueTiming] = useState('end_of_period');
   const [category, setCategory] = useState('general');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const locale = lang === 'km' ? 'km-KH' : 'en-US';
 
   useEffect(() => {
     async function loadHouse() {
@@ -53,6 +56,9 @@ export default function AddBillPage() {
   const shareCents = Math.round(totalCents / memberCount);
   const monthlySavingCents = frequency === 'quarterly' ? Math.round(shareCents / 3) : 0;
 
+  // Live calculation of schedule preview
+  const cyclePreview = calculateCycleFromStartDate(startDate || getTodayInHouseTimezone(), frequency, dueTiming);
+
   async function handleSaveBill(e) {
     e.preventDefault();
     if (!name.trim()) {
@@ -77,12 +83,13 @@ export default function AddBillPage() {
       else if (lower.includes('wifi') || lower.includes('wi-fi') || lower.includes('internet')) finalCat = 'wifi';
     }
 
-    const { data, error: createError } = await createBill({
+    const { error: createError } = await createBill({
       houseId: house.id,
       name: name.trim(),
       totalAmountCents: totalCents,
       frequency,
-      dueDayOfMonth: parseInt(dueDayOfMonth, 10),
+      startDate,
+      dueTiming,
       category: finalCat,
     });
 
@@ -178,8 +185,8 @@ export default function AddBillPage() {
                 </div>
               </div>
 
-              {/* Grid: Frequency + Due Day */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-md)' }}>
+              {/* Grid: Frequency & Category */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
                 <div>
                   <label htmlFor="bill-freq" className="input-label">
                     {t('bills.frequency_label')}
@@ -201,22 +208,6 @@ export default function AddBillPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="bill-day" className="input-label">
-                    {t('bills.due_day_label')}
-                  </label>
-                  <input
-                    id="bill-day"
-                    type="number"
-                    min="1"
-                    max="28"
-                    required
-                    value={dueDayOfMonth}
-                    onChange={e => setDueDayOfMonth(e.target.value)}
-                    className="input-field"
-                  />
-                </div>
-
-                <div>
                   <label htmlFor="bill-cat" className="input-label">
                     {t('bills.category_label')}
                   </label>
@@ -232,6 +223,40 @@ export default function AddBillPage() {
                       <option value="electricity">{t('bills.cat_electricity')}</option>
                       <option value="water">{t('bills.cat_water')}</option>
                       <option value="wifi">{t('bills.cat_wifi')}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom Start Date & Due Timing Selection */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                <div>
+                  <label htmlFor="bill-start" className="input-label">
+                    {t('bills.start_date_label')}
+                  </label>
+                  <input
+                    id="bill-start"
+                    type="date"
+                    required
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="bill-timing" className="input-label">
+                    {t('bills.due_timing_label')}
+                  </label>
+                  <div className="select-wrapper">
+                    <select
+                      id="bill-timing"
+                      value={dueTiming}
+                      onChange={e => setDueTiming(e.target.value)}
+                      className="select-field"
+                    >
+                      <option value="end_of_period">{t('bills.due_end')}</option>
+                      <option value="start_of_period">{t('bills.due_upfront')}</option>
                     </select>
                   </div>
                 </div>
@@ -285,7 +310,7 @@ export default function AddBillPage() {
           </div>
         </form>
 
-        {/* Right Column: Live Bento Preview (5 cols) */}
+        {/* Right Column: Live Bento Preview with Exact Calculated Schedule (5 cols) */}
         <div className="col-span-5">
           <div
             style={{
@@ -361,12 +386,28 @@ export default function AddBillPage() {
                 <span className="font-semibold">{t('common.members') ? `${memberCount} ${t('common.members')}` : `${memberCount} people`}</span>
               </div>
 
-              <div className="divider" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }} />
-
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ opacity: 0.9, fontSize: 14 }}>{t('bills.share_per_person')}</span>
                 <span className="text-headline-lg font-bold" style={{ color: '#ffffff' }}>
                   {formatCents(shareCents, house.currency)}
+                </span>
+              </div>
+
+              <div className="divider" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }} />
+
+              {/* Exact Calculated Billing Schedule */}
+              <div style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.85 }}>
+                  {t('bills.schedule_preview')}
+                </span>
+                <span>
+                  {t('bills.first_period_label', {
+                    start: formatDateShort(cyclePreview.periodStart, locale),
+                    end: formatDateShort(cyclePreview.periodEnd, locale),
+                  })}
+                </span>
+                <span style={{ fontWeight: 700, color: '#fff' }}>
+                  {t('bills.next_due_label', { date: formatDateShort(cyclePreview.dueDate, locale) })}
                 </span>
               </div>
             </div>

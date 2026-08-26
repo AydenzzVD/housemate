@@ -52,38 +52,62 @@ export function getTodayDayOfMonth() {
 }
 
 /**
+ * Calculate the exact bill cycle dates from an explicit user-selected Start Date.
+ *
+ * Example 1 (Rent):
+ *   startDateStr = "2026-08-17", frequency = "monthly", dueTiming = "start_of_period"
+ *   → periodStart = "2026-08-17", periodEnd = "2026-09-16", dueDate = "2026-08-17"
+ *
+ * Example 2 (Wi-Fi):
+ *   startDateStr = "2026-08-26", frequency = "quarterly", dueTiming = "end_of_period"
+ *   → periodStart = "2026-08-26", periodEnd = "2026-11-25", dueDate = "2026-11-26"
+ *
+ * @param {string} startDateStr - "YYYY-MM-DD"
+ * @param {string} frequency - 'monthly' | 'quarterly' | 'semi_annual' | 'yearly' | 'one_time'
+ * @param {'start_of_period'|'end_of_period'} [dueTiming='end_of_period']
+ * @returns {{ periodStart: string, periodEnd: string, dueDate: string }}
+ */
+export function calculateCycleFromStartDate(startDateStr, frequency, dueTiming = 'end_of_period') {
+  const [y, m, d] = startDateStr.split('-').map(Number);
+  const cycleMonths = frequencyToMonths(frequency);
+
+  const periodStart = startDateStr;
+
+  // Calculate next cycle start date (start + cycleMonths)
+  let nextMonth = m + cycleMonths;
+  let nextYear = y;
+  while (nextMonth > 12) {
+    nextMonth -= 12;
+    nextYear += 1;
+  }
+
+  // Handle day overflow (e.g. Feb 31 -> Feb 28)
+  const maxDayNextMonth = new Date(nextYear, nextMonth, 0).getDate();
+  const safeDay = Math.min(d, maxDayNextMonth);
+  const nextCycleStart = toISODate(nextYear, nextMonth, safeDay);
+
+  // Period end is 1 day before the next cycle start
+  const endObj = new Date(nextYear, nextMonth - 1, safeDay);
+  endObj.setDate(endObj.getDate() - 1);
+  const periodEnd = toISODate(endObj.getFullYear(), endObj.getMonth() + 1, endObj.getDate());
+
+  // Due date calculation
+  const dueDate = dueTiming === 'start_of_period' ? periodStart : nextCycleStart;
+
+  return { periodStart, periodEnd, dueDate };
+}
+
+/**
  * Calculate the first bill cycle dates for a newly-created bill.
- *
- * Rule:
- *   - If today is BEFORE the due day this month → first cycle is THIS month.
- *   - If today is ON OR AFTER the due day → first cycle is NEXT period.
- *
- * This prevents a newly-created bill from being immediately overdue.
+ * Retained for backwards compatibility if no start date is supplied.
  *
  * @param {number} dueDayOfMonth - 1-28
  * @param {string} frequency - 'monthly' | 'quarterly' | 'semi_annual' | 'yearly' | 'one_time'
  * @returns {{ periodStart: string, periodEnd: string, dueDate: string }}
  */
 export function calculateFirstCycleDate(dueDayOfMonth, frequency) {
-  const { year, month } = getCurrentYearMonth();
-  const todayDay = getTodayDayOfMonth();
-
-  // Determine how many months per cycle
-  const cycleMonths = frequencyToMonths(frequency);
-
-  let startYear = year;
-  let startMonth = month; // 1-indexed
-
-  // If today is on or after the due day, push to next period
-  if (todayDay >= dueDayOfMonth) {
-    startMonth += cycleMonths;
-    if (startMonth > 12) {
-      startYear += Math.floor((startMonth - 1) / 12);
-      startMonth = ((startMonth - 1) % 12) + 1;
-    }
-  }
-
-  return buildCycleDates(startYear, startMonth, cycleMonths, dueDayOfMonth);
+  const today = getTodayInHouseTimezone();
+  return calculateCycleFromStartDate(today, frequency, 'end_of_period');
 }
 
 /**
@@ -91,52 +115,23 @@ export function calculateFirstCycleDate(dueDayOfMonth, frequency) {
  *
  * @param {string} lastPeriodStart - ISO date string of the last cycle's period_start
  * @param {string} frequency
+ * @param {'start_of_period'|'end_of_period'} [dueTiming='end_of_period']
  * @returns {{ periodStart: string, periodEnd: string, dueDate: string }}
  */
-export function calculateNextCycleDate(lastPeriodStart, frequency) {
-  const [y, m] = lastPeriodStart.split('-').map(Number);
+export function calculateNextCycleDate(lastPeriodStart, frequency, dueTiming = 'end_of_period') {
+  const [y, m, d] = lastPeriodStart.split('-').map(Number);
   const cycleMonths = frequencyToMonths(frequency);
 
   let nextMonth = m + cycleMonths;
   let nextYear = y;
-  if (nextMonth > 12) {
-    nextYear += Math.floor((nextMonth - 1) / 12);
-    nextMonth = ((nextMonth - 1) % 12) + 1;
+  while (nextMonth > 12) {
+    nextMonth -= 12;
+    nextYear += 1;
   }
+  const maxDay = new Date(nextYear, nextMonth, 0).getDate();
+  const nextStart = toISODate(nextYear, nextMonth, Math.min(d, maxDay));
 
-  // Use same due day as the previous period start's day
-  const dueDayOfMonth = parseInt(lastPeriodStart.split('-')[2], 10);
-  return buildCycleDates(nextYear, nextMonth, cycleMonths, dueDayOfMonth);
-}
-
-/**
- * Build { periodStart, periodEnd, dueDate } for a given year/month.
- *
- * @param {number} year
- * @param {number} month - 1-indexed
- * @param {number} cycleMonths
- * @param {number} dueDayOfMonth
- * @returns {{ periodStart: string, periodEnd: string, dueDate: string }}
- */
-function buildCycleDates(year, month, cycleMonths, dueDayOfMonth) {
-  // Period start = 1st of the start month
-  const periodStart = toISODate(year, month, 1);
-
-  // Period end = last day of the final month in the period
-  let endMonth = month + cycleMonths - 1;
-  let endYear = year;
-  if (endMonth > 12) {
-    endYear += Math.floor((endMonth - 1) / 12);
-    endMonth = ((endMonth - 1) % 12) + 1;
-  }
-  const lastDayOfEndMonth = new Date(endYear, endMonth, 0).getDate(); // day 0 of next month
-  const periodEnd = toISODate(endYear, endMonth, lastDayOfEndMonth);
-
-  // Due date = due day of the LAST month in the period (e.g. quarterly: due on 3rd month's due day)
-  const safeDueDay = Math.min(dueDayOfMonth, lastDayOfEndMonth);
-  const dueDate = toISODate(endYear, endMonth, safeDueDay);
-
-  return { periodStart, periodEnd, dueDate };
+  return calculateCycleFromStartDate(nextStart, frequency, dueTiming);
 }
 
 /**
@@ -271,7 +266,6 @@ export function isOverdue(dueDateStr) {
 export function isSavingsCycle(frequency, periodStart, dueDate) {
   if (frequency === 'monthly' || frequency === 'one_time') return false;
 
-  // It's a savings-type cycle if the due date is in a FUTURE month
   const today = getTodayInHouseTimezone();
   const todayYM = today.slice(0, 7); // "YYYY-MM"
   const dueYM = dueDate.slice(0, 7);

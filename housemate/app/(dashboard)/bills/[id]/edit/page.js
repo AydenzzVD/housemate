@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { getBillById, updateBill, deactivateBill, deleteBill, getBillCycleCount } from '@/lib/bills';
 import { getUserHouse } from '@/lib/houses';
 import { parseToCents, formatCents } from '@/lib/money';
+import { getTodayInHouseTimezone } from '@/lib/dates';
+import { useLanguage } from '@/lib/lang/useLanguage';
 
 /**
  * Edit / Deactivate / Delete Bill Page (Admin Only)
@@ -15,13 +17,16 @@ export default function EditBillPage({ params }) {
   const unwrappedParams = use(params);
   const billId = unwrappedParams.id;
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [house, setHouse] = useState(null);
   const [bill, setBill] = useState(null);
   const [cycleCount, setCycleCount] = useState(0);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
-  const [dueDayOfMonth, setDueDayOfMonth] = useState(1);
+  const [frequency, setFrequency] = useState('monthly');
+  const [startDate, setStartDate] = useState(getTodayInHouseTimezone());
+  const [dueTiming, setDueTiming] = useState('end_of_period');
   const [category, setCategory] = useState('general');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,7 +49,9 @@ export default function EditBillPage({ params }) {
         setBill(b);
         setName(b.name);
         setAmount((b.total_amount_cents / 100).toFixed(2));
-        setDueDayOfMonth(b.due_day_of_month);
+        setFrequency(b.frequency || 'monthly');
+        setStartDate(b.start_date || b.created_at?.split('T')[0] || getTodayInHouseTimezone());
+        setDueTiming(b.due_timing || 'end_of_period');
         setCategory(b.category || 'general');
       }
       setLoading(false);
@@ -77,11 +84,11 @@ export default function EditBillPage({ params }) {
   async function handleUpdate(e) {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Bill name cannot be empty.');
+      setError(t('bills.error_name'));
       return;
     }
     if (totalCents <= 0) {
-      setError('Please enter a valid amount.');
+      setError(t('bills.error_amount'));
       return;
     }
 
@@ -91,7 +98,9 @@ export default function EditBillPage({ params }) {
     const { error: updateErr } = await updateBill(bill.id, {
       name: name.trim(),
       totalAmountCents: totalCents,
-      dueDayOfMonth: parseInt(dueDayOfMonth, 10),
+      frequency,
+      startDate,
+      dueTiming,
       category,
     });
 
@@ -147,11 +156,21 @@ export default function EditBillPage({ params }) {
         </div>
       )}
 
+      {/* Info Notice about Historical Immutability */}
+      <div className="card" style={{ padding: 'var(--space-md) var(--space-lg)', backgroundColor: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+          <span className="material-symbols-outlined">info</span>
+          <p className="text-body-sm font-medium">
+            {t('bills_mgmt.amount_change_note')}
+          </p>
+        </div>
+      </div>
+
       <form onSubmit={handleUpdate} className="card" style={{ padding: 'var(--space-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
         <h2 className="text-headline-md text-on-surface">Bill Settings</h2>
 
         <div>
-          <label htmlFor="edit-name" className="input-label">Bill Name</label>
+          <label htmlFor="edit-name" className="input-label">{t('bills.bill_name')}</label>
           <input
             id="edit-name"
             type="text"
@@ -163,7 +182,7 @@ export default function EditBillPage({ params }) {
         </div>
 
         <div>
-          <label htmlFor="edit-amount" className="input-label">Total Amount ({house?.currency})</label>
+          <label htmlFor="edit-amount" className="input-label">{t('bills.total_amount', { currency: house?.currency })}</label>
           <input
             id="edit-amount"
             type="number"
@@ -178,21 +197,25 @@ export default function EditBillPage({ params }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
           <div>
-            <label htmlFor="edit-day" className="input-label">Due Day of Month</label>
-            <input
-              id="edit-day"
-              type="number"
-              min="1"
-              max="28"
-              required
-              value={dueDayOfMonth}
-              onChange={e => setDueDayOfMonth(e.target.value)}
-              className="input-field"
-            />
+            <label htmlFor="edit-freq" className="input-label">{t('bills.frequency_label')}</label>
+            <div className="select-wrapper">
+              <select
+                id="edit-freq"
+                value={frequency}
+                onChange={e => setFrequency(e.target.value)}
+                className="select-field"
+              >
+                <option value="monthly">{t('bills.freq_monthly')}</option>
+                <option value="quarterly">{t('bills.freq_quarterly')}</option>
+                <option value="semi_annual">{t('bills.freq_semi_annual')}</option>
+                <option value="yearly">{t('bills.freq_yearly')}</option>
+                <option value="one_time">{t('bills.freq_one_time')}</option>
+              </select>
+            </div>
           </div>
 
           <div>
-            <label htmlFor="edit-cat" className="input-label">Category</label>
+            <label htmlFor="edit-cat" className="input-label">{t('bills.category_label')}</label>
             <div className="select-wrapper">
               <select
                 id="edit-cat"
@@ -200,11 +223,41 @@ export default function EditBillPage({ params }) {
                 onChange={e => setCategory(e.target.value)}
                 className="select-field"
               >
-                <option value="general">General</option>
-                <option value="rent">House Rent</option>
-                <option value="electricity">Electricity</option>
-                <option value="water">Water</option>
-                <option value="wifi">Wi-Fi</option>
+                <option value="general">{t('bills.cat_general')}</option>
+                <option value="rent">{t('bills.cat_rent')}</option>
+                <option value="electricity">{t('bills.cat_electricity')}</option>
+                <option value="water">{t('bills.cat_water')}</option>
+                <option value="wifi">{t('bills.cat_wifi')}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Start Date & Due Timing */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+          <div>
+            <label htmlFor="edit-start" className="input-label">{t('bills.start_date_label')}</label>
+            <input
+              id="edit-start"
+              type="date"
+              required
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="input-field"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="edit-timing" className="input-label">{t('bills.due_timing_label')}</label>
+            <div className="select-wrapper">
+              <select
+                id="edit-timing"
+                value={dueTiming}
+                onChange={e => setDueTiming(e.target.value)}
+                className="select-field"
+              >
+                <option value="end_of_period">{t('bills.due_end')}</option>
+                <option value="start_of_period">{t('bills.due_upfront')}</option>
               </select>
             </div>
           </div>
@@ -212,10 +265,10 @@ export default function EditBillPage({ params }) {
 
         <div style={{ display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)' }}>
           <Link href={`/bills/${bill.id}`} className="btn-secondary" style={{ flex: 1, textDecoration: 'none' }}>
-            Cancel
+            {t('common.cancel')}
           </Link>
           <button type="submit" disabled={saving} className="btn-primary" style={{ flex: 2 }}>
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? t('common.saving') : t('common.save')}
           </button>
         </div>
       </form>
@@ -237,7 +290,7 @@ export default function EditBillPage({ params }) {
             className="btn-secondary"
             style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
           >
-            Deactivate Bill (Preserve History)
+            {t('bills_mgmt.deactivate_bill')}
           </button>
 
           {cycleCount === 0 && (
@@ -266,10 +319,10 @@ export default function EditBillPage({ params }) {
             </p>
             <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
               <button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary" style={{ flex: 1 }}>
-                Cancel
+                {t('common.cancel')}
               </button>
               <button onClick={handleDelete} className="btn-primary" style={{ flex: 1, backgroundColor: 'var(--color-error)' }}>
-                Delete
+                {t('common.delete')}
               </button>
             </div>
           </div>

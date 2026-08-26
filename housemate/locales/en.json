@@ -282,7 +282,14 @@
     "cat_rent": "House Rent",
     "cat_electricity": "Electricity",
     "cat_water": "Water",
-    "cat_wifi": "Wi-Fi / Internet"
+    "cat_wifi": "Wi-Fi / Internet",
+    "start_date_label": "Start Date",
+    "due_timing_label": "Due Date Schedule",
+    "due_upfront": "Pay Upfront (Start of Period e.g. Rent)",
+    "due_end": "Pay at End of Period (e.g. Wi-Fi / Utilities)",
+    "schedule_preview": "Billing Schedule Preview",
+    "first_period_label": "First Period: {start} to {end}",
+    "next_due_label": "Next Due Date: {date}"
   },
   "payments": {
     "matrix_title": "{month} Payment Matrix",

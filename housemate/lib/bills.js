@@ -4,7 +4,7 @@
  * All mutations are admin-only (enforced by RLS + RPC).
  */
 import { createBrowserClient } from '@supabase/ssr';
-import { calculateFirstCycleDate } from '@/lib/dates';
+import { calculateCycleFromStartDate, getTodayInHouseTimezone } from '@/lib/dates';
 
 function getClient() {
   return createBrowserClient(
@@ -23,7 +23,7 @@ export async function getHouseBills(houseId) {
 
   const { data, error } = await supabase
     .from('bills')
-    .select('id, name, total_amount_cents, frequency, due_day_of_month, category, is_active, created_at')
+    .select('id, name, total_amount_cents, frequency, due_day_of_month, start_date, due_timing, category, is_active, created_at')
     .eq('house_id', houseId)
     .eq('is_active', true)
     .order('created_at', { ascending: true });
@@ -45,7 +45,7 @@ export async function getAllHouseBills(houseId) {
 
   const { data, error } = await supabase
     .from('bills')
-    .select('id, name, total_amount_cents, frequency, due_day_of_month, category, is_active, created_at')
+    .select('id, name, total_amount_cents, frequency, due_day_of_month, start_date, due_timing, category, is_active, created_at')
     .eq('house_id', houseId)
     .order('created_at', { ascending: true });
 
@@ -67,7 +67,7 @@ export async function getBillById(billId) {
   // Fetch bill
   const { data: bill, error: billError } = await supabase
     .from('bills')
-    .select('id, name, total_amount_cents, frequency, due_day_of_month, category, is_active, house_id, created_at')
+    .select('id, name, total_amount_cents, frequency, due_day_of_month, start_date, due_timing, category, is_active, house_id, created_at')
     .eq('id', billId)
     .single();
 
@@ -101,15 +101,26 @@ export async function getBillById(billId) {
 }
 
 /**
- * Create a new bill and immediately create its first billing cycle.
- * Uses lib/dates.js to calculate the correct first cycle date —
- * prevents the new bill from being immediately overdue.
+ * Create a new bill with an explicit start date and due timing.
+ *
+ * Example:
+ *   startDate = "2026-08-17" (Rent) → Period 1: Aug 17 - Sep 16
+ *   startDate = "2026-08-26" (Wi-Fi) → Period 1: Aug 26 - Nov 25, Due Nov 26
  *
  * Admin only (enforced by create_bill_cycle RPC & RLS).
  * @param {Object} params
  * @returns {Promise<{data: {billId, cycleId}|null, error: string|null}>}
  */
-export async function createBill({ houseId, name, totalAmountCents, frequency, dueDayOfMonth, category }) {
+export async function createBill({
+  houseId,
+  name,
+  totalAmountCents,
+  frequency,
+  dueDayOfMonth,
+  startDate,
+  dueTiming = 'end_of_period',
+  category,
+}) {
   const supabase = getClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -117,7 +128,11 @@ export async function createBill({ houseId, name, totalAmountCents, frequency, d
     return { data: null, error: 'Not authenticated' };
   }
 
-  // Insert the bill definition
+  const effectiveStartDate = startDate || getTodayInHouseTimezone();
+  const dayFromDate = parseInt(effectiveStartDate.split('-')[2], 10);
+  const dueDay = dueDayOfMonth || dayFromDate;
+
+  // Insert bill definition
   const { data: bill, error: billError } = await supabase
     .from('bills')
     .insert({
@@ -126,7 +141,9 @@ export async function createBill({ houseId, name, totalAmountCents, frequency, d
       name: name.trim(),
       total_amount_cents: totalAmountCents,
       frequency,
-      due_day_of_month: dueDayOfMonth,
+      due_day_of_month: dueDay,
+      start_date: effectiveStartDate,
+      due_timing: dueTiming,
       category: category || 'general',
     })
     .select('id')
@@ -134,8 +151,12 @@ export async function createBill({ houseId, name, totalAmountCents, frequency, d
 
   if (billError) return { data: null, error: billError.message };
 
-  // Calculate the correct first cycle using house timezone logic
-  const { periodStart, periodEnd, dueDate } = calculateFirstCycleDate(dueDayOfMonth, frequency);
+  // Calculate cycle dates from the explicit start date
+  const { periodStart, periodEnd, dueDate } = calculateCycleFromStartDate(
+    effectiveStartDate,
+    frequency,
+    dueTiming
+  );
 
   const { data: cycleData, error: cycleError } = await supabase.rpc('create_bill_cycle', {
     p_bill_id:      bill.id,
@@ -156,32 +177,36 @@ export async function createBill({ houseId, name, totalAmountCents, frequency, d
 }
 
 /**
- * Update a bill's definition (name, amount, due day, category, frequency).
+ * Update a bill's definition (name, amount, start date, due timing, category, frequency).
  * Does NOT modify existing bill_cycles or bill_payments.
  * The change only affects FUTURE cycles generated after this update.
  *
- * Tries direct table update (works with RLS `bills_update_admin_only`) so it
- * doesn't fail even if custom RPC hasn't been executed in Supabase SQL editor yet.
- *
  * @param {string} billId
- * @param {Object} updates - { name, totalAmountCents, dueDayOfMonth, category, frequency }
+ * @param {Object} updates - { name, totalAmountCents, dueDayOfMonth, startDate, dueTiming, category, frequency }
  * @returns {Promise<{error: string|null}>}
  */
-export async function updateBill(billId, { name, totalAmountCents, dueDayOfMonth, category, frequency }) {
+export async function updateBill(billId, {
+  name,
+  totalAmountCents,
+  dueDayOfMonth,
+  startDate,
+  dueTiming,
+  category,
+  frequency,
+}) {
   const supabase = getClient();
 
   const updateData = {
     name: name.trim(),
     total_amount_cents: totalAmountCents,
-    due_day_of_month: dueDayOfMonth,
     category: category || 'general',
   };
 
-  if (frequency) {
-    updateData.frequency = frequency;
-  }
+  if (dueDayOfMonth) updateData.due_day_of_month = dueDayOfMonth;
+  if (startDate) updateData.start_date = startDate;
+  if (dueTiming) updateData.due_timing = dueTiming;
+  if (frequency) updateData.frequency = frequency;
 
-  // Direct table UPDATE — enforced by RLS `bills_update_admin_only`
   const { error } = await supabase
     .from('bills')
     .update(updateData)
@@ -192,8 +217,6 @@ export async function updateBill(billId, { name, totalAmountCents, dueDayOfMonth
 
 /**
  * Deactivate a bill (soft delete). Preserves all history.
- * No new future cycles will be created. Existing cycles remain visible.
- * Admin only.
  * @param {string} billId
  * @returns {Promise<{error: string|null}>}
  */
@@ -210,8 +233,6 @@ export async function deactivateBill(billId) {
 
 /**
  * Reactivate a previously deactivated bill.
- * Future cycles will resume being generated.
- * Admin only.
  * @param {string} billId
  * @returns {Promise<{error: string|null}>}
  */
@@ -228,14 +249,12 @@ export async function reactivateBill(billId) {
 
 /**
  * Hard delete a bill. Only allowed if zero bill_cycles exist.
- * Admin only.
  * @param {string} billId
  * @returns {Promise<{error: string|null}>}
  */
 export async function deleteBill(billId) {
   const supabase = getClient();
 
-  // Safety check: ensure no cycles exist
   const { count } = await supabase
     .from('bill_cycles')
     .select('id', { count: 'exact', head: true })
@@ -254,7 +273,7 @@ export async function deleteBill(billId) {
 }
 
 /**
- * Count how many bill_cycles exist for a bill (to determine if delete is safe).
+ * Count how many bill_cycles exist for a bill.
  * @param {string} billId
  * @returns {Promise<number>}
  */

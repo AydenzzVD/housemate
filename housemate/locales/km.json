@@ -282,7 +282,14 @@
     "cat_rent": "ការជួលផ្ទះ",
     "cat_electricity": "អគ្គិសនី",
     "cat_water": "ទឹក",
-    "cat_wifi": "វ៉ាយហ្វាយ / អ៊ីនធឺណិត"
+    "cat_wifi": "វ៉ាយហ្វាយ / អ៊ីនធឺណិត",
+    "start_date_label": "ថ្ងៃចាប់ផ្តើម",
+    "due_timing_label": "កាលវិភាគផុតកំណត់",
+    "due_upfront": "បង់មុន (ដើមវគ្គ ឧ. ថ្លៃជួលផ្ទះ)",
+    "due_end": "បង់ក្រោយ (ចុងវគ្គ ឧ. វ៉ាយហ្វាយ/ទឹកភ្លើង)",
+    "schedule_preview": "ការពិនិត្យមើលកាលវិភាគ",
+    "first_period_label": "វគ្គដំបូង: {start} ដល់ {end}",
+    "next_due_label": "ថ្ងៃផុតកំណត់បន្ទាប់: {date}"
   },
   "payments": {
     "matrix_title": "ការទូទាត់ {month}",
