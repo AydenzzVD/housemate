@@ -23,7 +23,7 @@ export async function getHouseBills(houseId) {
 
   const { data, error } = await supabase
     .from('bills')
-    .select('id, name, total_amount_cents, frequency, due_day_of_month, start_date, due_timing, category, is_active, created_at')
+    .select('id, name, total_amount_cents, frequency, due_day_of_month, category, is_active, created_at')
     .eq('house_id', houseId)
     .eq('is_active', true)
     .order('created_at', { ascending: true });
@@ -45,7 +45,7 @@ export async function getAllHouseBills(houseId) {
 
   const { data, error } = await supabase
     .from('bills')
-    .select('id, name, total_amount_cents, frequency, due_day_of_month, start_date, due_timing, category, is_active, created_at')
+    .select('id, name, total_amount_cents, frequency, due_day_of_month, category, is_active, created_at')
     .eq('house_id', houseId)
     .order('created_at', { ascending: true });
 
@@ -64,10 +64,9 @@ export async function getAllHouseBills(houseId) {
 export async function getBillById(billId) {
   const supabase = getClient();
 
-  // Fetch bill
   const { data: bill, error: billError } = await supabase
     .from('bills')
-    .select('id, name, total_amount_cents, frequency, due_day_of_month, start_date, due_timing, category, is_active, house_id, created_at')
+    .select('id, name, total_amount_cents, frequency, due_day_of_month, category, is_active, house_id, created_at')
     .eq('id', billId)
     .single();
 
@@ -76,7 +75,6 @@ export async function getBillById(billId) {
     return null;
   }
 
-  // Fetch all cycles for history (most recent first)
   const { data: cycles } = await supabase
     .from('bill_cycles')
     .select('id, period_start, period_end, due_date, total_amount_cents, status')
@@ -85,7 +83,6 @@ export async function getBillById(billId) {
 
   const latestCycle = cycles?.[0] ?? null;
 
-  // Fetch payments for the latest cycle
   let payments = [];
   if (latestCycle) {
     const { data: paymentData } = await supabase
@@ -102,12 +99,8 @@ export async function getBillById(billId) {
 
 /**
  * Create a new bill with an explicit start date and due timing.
+ * Features automatic fallback if start_date/due_timing columns are not yet added to Supabase DB.
  *
- * Example:
- *   startDate = "2026-08-17" (Rent) → Period 1: Aug 17 - Sep 16
- *   startDate = "2026-08-26" (Wi-Fi) → Period 1: Aug 26 - Nov 25, Due Nov 26
- *
- * Admin only (enforced by create_bill_cycle RPC & RLS).
  * @param {Object} params
  * @returns {Promise<{data: {billId, cycleId}|null, error: string|null}>}
  */
@@ -132,22 +125,39 @@ export async function createBill({
   const dayFromDate = parseInt(effectiveStartDate.split('-')[2], 10);
   const dueDay = dueDayOfMonth || dayFromDate;
 
-  // Insert bill definition
-  const { data: bill, error: billError } = await supabase
+  const insertPayload = {
+    house_id: houseId,
+    created_by: user.id,
+    name: name.trim(),
+    total_amount_cents: totalAmountCents,
+    frequency,
+    due_day_of_month: dueDay,
+    start_date: effectiveStartDate,
+    due_timing: dueTiming,
+    category: category || 'general',
+  };
+
+  // Try insert with new columns
+  let { data: bill, error: billError } = await supabase
     .from('bills')
-    .insert({
-      house_id: houseId,
-      created_by: user.id,
-      name: name.trim(),
-      total_amount_cents: totalAmountCents,
-      frequency,
-      due_day_of_month: dueDay,
-      start_date: effectiveStartDate,
-      due_timing: dueTiming,
-      category: category || 'general',
-    })
+    .insert(insertPayload)
     .select('id')
     .single();
+
+  // Fallback: If DB schema doesn't have start_date or due_timing columns yet, strip them and retry
+  if (billError && (billError.message?.includes('due_timing') || billError.message?.includes('start_date') || billError.code === 'PGRST204')) {
+    delete insertPayload.start_date;
+    delete insertPayload.due_timing;
+
+    const retry = await supabase
+      .from('bills')
+      .insert(insertPayload)
+      .select('id')
+      .single();
+
+    bill = retry.data;
+    billError = retry.error;
+  }
 
   if (billError) return { data: null, error: billError.message };
 
@@ -177,12 +187,11 @@ export async function createBill({
 }
 
 /**
- * Update a bill's definition (name, amount, start date, due timing, category, frequency).
- * Does NOT modify existing bill_cycles or bill_payments.
- * The change only affects FUTURE cycles generated after this update.
+ * Update a bill's definition.
+ * Features automatic fallback if DB schema cache does not have start_date/due_timing columns.
  *
  * @param {string} billId
- * @param {Object} updates - { name, totalAmountCents, dueDayOfMonth, startDate, dueTiming, category, frequency }
+ * @param {Object} updates
  * @returns {Promise<{error: string|null}>}
  */
 export async function updateBill(billId, {
@@ -207,10 +216,23 @@ export async function updateBill(billId, {
   if (dueTiming) updateData.due_timing = dueTiming;
   if (frequency) updateData.frequency = frequency;
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from('bills')
     .update(updateData)
     .eq('id', billId);
+
+  // Fallback: If DB schema doesn't have start_date/due_timing, strip them and retry
+  if (error && (error.message?.includes('due_timing') || error.message?.includes('start_date') || error.code === 'PGRST204')) {
+    delete updateData.start_date;
+    delete updateData.due_timing;
+
+    const retry = await supabase
+      .from('bills')
+      .update(updateData)
+      .eq('id', billId);
+
+    error = retry.error;
+  }
 
   return { error: error?.message ?? null };
 }
