@@ -105,18 +105,24 @@ export async function getBillById(billId) {
  * Uses lib/dates.js to calculate the correct first cycle date —
  * prevents the new bill from being immediately overdue.
  *
- * Admin only (enforced by create_bill_cycle RPC).
+ * Admin only (enforced by create_bill_cycle RPC & RLS).
  * @param {Object} params
  * @returns {Promise<{data: {billId, cycleId}|null, error: string|null}>}
  */
 export async function createBill({ houseId, name, totalAmountCents, frequency, dueDayOfMonth, category }) {
   const supabase = getClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: 'Not authenticated' };
+  }
 
   // Insert the bill definition
   const { data: bill, error: billError } = await supabase
     .from('bills')
     .insert({
       house_id: houseId,
+      created_by: user.id,
       name: name.trim(),
       total_amount_cents: totalAmountCents,
       frequency,
@@ -129,7 +135,6 @@ export async function createBill({ houseId, name, totalAmountCents, frequency, d
   if (billError) return { data: null, error: billError.message };
 
   // Calculate the correct first cycle using house timezone logic
-  // This prevents "created Aug 25, due day 16" from being immediately overdue
   const { periodStart, periodEnd, dueDate } = calculateFirstCycleDate(dueDayOfMonth, frequency);
 
   const { data: cycleData, error: cycleError } = await supabase.rpc('create_bill_cycle', {
@@ -141,7 +146,6 @@ export async function createBill({ houseId, name, totalAmountCents, frequency, d
 
   if (cycleError) {
     console.error('create_bill_cycle error:', cycleError.message);
-    // Bill was created but cycle failed — still return the bill ID
     return {
       data: { billId: bill.id, cycleId: null },
       error: `Bill created but first cycle failed: ${cycleError.message}`,
@@ -155,7 +159,9 @@ export async function createBill({ houseId, name, totalAmountCents, frequency, d
  * Update a bill's definition (name, amount, due day, category, frequency).
  * Does NOT modify existing bill_cycles or bill_payments.
  * The change only affects FUTURE cycles generated after this update.
- * Admin only (RLS + RPC enforced).
+ *
+ * Tries direct table update (works with RLS `bills_update_admin_only`) so it
+ * doesn't fail even if custom RPC hasn't been executed in Supabase SQL editor yet.
  *
  * @param {string} billId
  * @param {Object} updates - { name, totalAmountCents, dueDayOfMonth, category, frequency }
@@ -164,14 +170,22 @@ export async function createBill({ houseId, name, totalAmountCents, frequency, d
 export async function updateBill(billId, { name, totalAmountCents, dueDayOfMonth, category, frequency }) {
   const supabase = getClient();
 
-  const { error } = await supabase.rpc('update_bill_definition', {
-    p_bill_id:            billId,
-    p_name:               name.trim(),
-    p_total_amount_cents: totalAmountCents,
-    p_frequency:          frequency,
-    p_due_day_of_month:   dueDayOfMonth,
-    p_category:           category,
-  });
+  const updateData = {
+    name: name.trim(),
+    total_amount_cents: totalAmountCents,
+    due_day_of_month: dueDayOfMonth,
+    category: category || 'general',
+  };
+
+  if (frequency) {
+    updateData.frequency = frequency;
+  }
+
+  // Direct table UPDATE — enforced by RLS `bills_update_admin_only`
+  const { error } = await supabase
+    .from('bills')
+    .update(updateData)
+    .eq('id', billId);
 
   return { error: error?.message ?? null };
 }

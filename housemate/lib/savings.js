@@ -67,16 +67,23 @@ export async function getAllMemberSavings(billId) {
 
 /**
  * Add a saving deposit for a bill.
+ * MUST include user_id = auth.uid() for RLS policy.
  * @param {{billId, amountCents, savedDate, note}} params
  * @returns {Promise<{data: {id}|null, error: string|null}>}
  */
 export async function addSavingDeposit({ billId, amountCents, savedDate, note }) {
   const supabase = getClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: 'Not authenticated' };
+  }
 
   const { data, error } = await supabase
     .from('bill_savings')
     .insert({
       bill_id: billId,
+      user_id: user.id, // REQUIRED for RLS
       amount_cents: amountCents,
       saved_date: savedDate || new Date().toISOString().split('T')[0],
       note: note?.trim() || null,

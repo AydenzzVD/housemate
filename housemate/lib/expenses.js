@@ -45,15 +45,22 @@ export async function getMyExpenses(monthYear = null) {
 
 /**
  * Add a new personal expense.
+ * MUST include user_id = auth.uid() to satisfy RLS WITH CHECK policy.
  * @param {{title, amountCents, category, date, note}} params
  * @returns {Promise<{data: {id}|null, error: string|null}>}
  */
 export async function addExpense({ title, amountCents, category, date, note }) {
   const supabase = getClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: 'Not authenticated' };
+  }
 
   const { data, error } = await supabase
     .from('expenses')
     .insert({
+      user_id: user.id, // REQUIRED for RLS WITH CHECK (user_id = auth.uid())
       title: title.trim(),
       amount_cents: amountCents,
       category,
